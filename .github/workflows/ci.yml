@@ -5,6 +5,10 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+  # Weekly, so a version bump in the reference implementation is noticed even
+  # when nothing is pushed here.
+  schedule:
+    - cron: "0 7 * * 1"
 
 permissions:
   contents: read
@@ -46,3 +50,33 @@ jobs:
       # The shipped example must stay valid (placeholders are notes, not errors).
       - name: Validate the shipped example
         run: python skills/remnawave-cookbook/validate.py skills/remnawave-cookbook/examples/profile.json
+
+  entrypoints:
+    name: entry points and bundle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Check that every entry point reaches every page
+        run: bash tools/check-entrypoints.sh
+
+      - name: Build the ChatGPT bundle
+        run: bash tools/build-chatgpt-bundle.sh
+
+      - name: Attach the bundle to this run
+        uses: actions/upload-artifact@v4
+        with:
+          name: chatgpt-bundle
+          path: dist/remnawave-cookbook.md
+
+  versions:
+    name: documented versions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      # Facts are pinned to versions; a pin that moved means facts to re-verify.
+      - name: Compare SKILL.md with the reference implementation's pins
+        run: bash tools/check-versions.sh

@@ -29,11 +29,11 @@ protocols and combinations, and a reference implementation that runs them.
 
 ## Status
 
-Stages 1–3 of the plan: the router, the reference (architecture, Remnawave 2.8
+Stages 1–5 of the plan: the router, the reference (architecture, Remnawave 2.8
 API contracts, Xray v26.6.27, Angie, Mihomo, automation, sources), an
-operations map, diagnostics, examples and an offline validator with tests.
-Next: a live fleet audit, entry points for other assistants, and notes on what comes next
-(Hysteria2, CDN, WebSocket).
+operations map, diagnostics, examples, an offline validator with tests, the
+live fleet audit (in the reference implementation), and entry points for other
+assistants. Next: notes on what comes next (Hysteria2, CDN, WebSocket).
 
 ## Layout
 
@@ -47,8 +47,13 @@ skills/remnawave-cookbook/
   examples/                  depersonalised profile, Angie blocks, Mihomo entries
   validate.py                offline check of a profile export + rendered web config (stdlib)
   audit.md                   how to run it, what each finding means; the live fleet audit
+AGENTS.md                    entry point for Codex and other AGENTS.md readers
 tests/                       one test per validator rule
-tools/tells-guard.sh         CI guard: nothing here may identify real infrastructure
+tools/
+  tells-guard.sh             nothing here may identify real infrastructure
+  check-entrypoints.sh       every entry point reaches every page; links resolve
+  check-versions.sh          documented versions = what the reference implementation pins
+  build-chatgpt-bundle.sh    the whole skill as one Markdown file
 ```
 
 ## Install (Claude Code)
@@ -60,6 +65,16 @@ tools/tells-guard.sh         CI guard: nothing here may identify real infrastruc
 
 Or copy `skills/remnawave-cookbook/` into `~/.claude/skills/` or
 `<project>/.claude/skills/`.
+
+## Other assistants
+
+- **OpenAI Codex** and other tools that read `AGENTS.md`: clone the repository
+  into (or next to) your project; `AGENTS.md` routes to the same content.
+- **ChatGPT** (no repository access): run `bash tools/build-chatgpt-bundle.sh`,
+  or download the `chatgpt-bundle` artifact from any CI run, and add
+  `remnawave-cookbook.md` to a ChatGPT Project's files.
+
+CI checks that all of them lead to the same pages, so no door goes stale.
 
 ## Reference implementation
 
