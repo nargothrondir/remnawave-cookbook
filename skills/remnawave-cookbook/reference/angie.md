@@ -98,9 +98,53 @@ question is only whether the web server passes the stream faithfully.
 Response buffering is not the issue: Xray sends `X-Accel-Buffering: no`, which
 nginx honours per response. ✅
 
-Known rough edge of `grpc_pass`: clients behind nginx `grpc_pass` with
-packet-up report `protocol error: received DATA after END_STREAM` (upstream
-issue XTLS/Xray-core#4894, root cause not found). ❔ whether it affects users.
+Known rough edges of `grpc_pass` — all on the HTTP/2 hop between the web
+server and Xray, so `proxy_pass` over HTTP/1.1 cannot have them:
+
+- `protocol error: received DATA after END_STREAM` with packet-up
+  (XTLS/Xray-core#4894, root cause not found); ❔ whether it affects users.
+- `upstream sent too large http2 frame` with split upload/download
+  (XTLS/Xray-core#4716).
+- `http2: frame too large` (XTLS/Xray-core#4446): the author suspected the
+  server not honouring the client's `SETTINGS_MAX_FRAME_SIZE`; that reporter's
+  case went away with a different client fingerprint.
+
+### Why many setups now use `proxy_pass` (checked 2026-09)
+
+Upstream has not changed its advice: #4113 still recommends `grpc_pass`, the
+official `XTLS/Xray-examples` (`VLESS-XHTTP3-Nginx/nginx.conf`) still uses it,
+and the Xray documentation (`transports/xhttp.md`) does not mention nginx at
+all. The move to `proxy_pass` is a community one:
+
+- `legiz-ru/my-remnawave`, the most copied Remnawave xHTTP-behind-nginx
+  example, replaced `grpc_pass` with `proxy_pass` on 2026-04-15 (commit
+  "update xhttp example"), with no reason given. Its new block carries WebSocket
+  `Upgrade`/`Connection` headers and no `proxy_request_buffering off` — the
+  shape of a generic reverse-proxy template rather than one written for xHTTP.
+- Answers in upstream discussions (e.g. XTLS/Xray-core discussion #5822,
+  2026-03) suggest `proxy_pass` to people hitting `grpc_pass` errors; these are
+  community replies, not the maintainers'.
+
+The reasons that hold up:
+
+1. **Clients that run packet-up do not need `grpc_pass`.** Mihomo and most
+   mobile clients pick packet-up over TLS (see `mihomo.md`) — ordinary POSTs
+   and one long GET, which HTTP/1.1 carries fine.
+2. **The rough edges above exist only with `grpc_pass`.** Whoever hit one once
+   switched and had no reason to come back.
+3. **Familiarity:** `proxy_*` is what everyone already writes for websites.
+
+The reason against: clients on the Xray core pick **stream-up** in `auto` mode
+over HTTP/2. That needs a streaming request body; `proxy_pass` carries it only
+with `proxy_request_buffering off`, and stream-one not reliably — which is why
+the author recommends `grpc_pass`.
+
+**Measured in the reference implementation** (one node, Mihomo client,
+packet-up, delay tests after 90 s idle, two runs each, same day): `grpc_pass`
+failed 1 of 20, `proxy_pass` (the variant below) 6 of 20; no failures in either
+during active use; latency the same. Fisher's exact test p≈0.09 — suggestive,
+not proof, but nothing favours `proxy_pass`. The reference implementation stays
+on `grpc_pass` and keeps the switch for the day one of the rough edges shows up.
 
 A fair comparison is by measurement, per node: render one block or the other
 from an environment variable (`XHTTP_UPSTREAM=grpc|http`), switch one node,
@@ -133,7 +177,9 @@ HTTP/2 to backends (`proxy_http_version 2`) arrived in Angie 1.12.0 ✅
 | `upstream timed out (110: Operation timed out) while reading upstream` | the web server's read timeout fired before Xray's idle logic — raise `grpc_read_timeout` |
 | `connect() to unix:/dev/shm/xhttp.sock failed (2: No such file or directory)` | the xHTTP inbound is not running on this node — not in the profile, or not active on the node |
 
-💡 Hypothesis, not verified: the web server closes idle HTTP/2 client
-connections after `keepalive_timeout` (75 s by default) while the client keeps
-them for reuse for 30–50 minutes; a first request after a pause could land on
-a dead connection. Test before changing anything.
+💡 Hypothesis, weakened by measurement: the web server closes idle HTTP/2
+client connections after `keepalive_timeout` (75 s by default) while the
+client keeps them for reuse for 30–50 minutes, so a first request after a pause
+lands on a dead connection. Delay tests after 90 s of idle failed 1 in 20 on
+`grpc_pass` — a deterministic close would fail nearly all of them. See
+`diagnostics.md` for the explanation that fits the numbers better.

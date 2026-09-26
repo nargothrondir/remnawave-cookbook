@@ -82,14 +82,27 @@ path, several streams of one connection at once.**
 
 **Delay test sometimes shows no connection or hangs; browsing through the same
 entry works.**
-- 💡 Open question. Candidates in order: the web server cutting half-idle
-  streams (fixed by the 1 h timeouts above); idle HTTP/2 connections closed by
-  the web server's `keepalive_timeout` while the client still reuses them; an
-  artefact of `grpc_pass` with packet-up (XTLS/Xray-core#4894).
-- Check: measure (see `reference/mihomo.md`, "Measuring from the client"):
-  failures right after a pause longer than 75 s point at keep-alive; failures
-  spread evenly point elsewhere. Compare `grpc_pass` and `proxy_pass` on one
-  node before changing the fleet.
+- 🔶 Measured, cause not proven. In the reference implementation (Mihomo,
+  packet-up, one node): delay tests a few seconds apart never failed; after
+  90 s of idle, xHTTP failed 1 in 20 with `grpc_pass` and 6 in 20 with
+  `proxy_pass`, while REALITY TCP on the same node failed 0 in 10. So it is
+  specific to xHTTP, happens only after idle, and is not caused by `grpc_pass`.
+  The first candidate — the web server cutting half-idle streams — is fixed by
+  the 1 h timeouts above.
+- 💡 The explanation that fits: a pooled connection dies silently and the
+  client still sends the next request on it. XHTTP's author describes this in
+  XTLS/Xray-core#6444 (v26.6.27): a connection that carried no request for a
+  while can be dropped by the network or a CDN without XHTTP noticing. The
+  difference from REALITY TCP matches — its delay test dials a fresh
+  connection each time, while xHTTP with `reuse-settings` reuses a pooled one.
+  Mihomo notices a dead HTTP/2 connection only through its health check: after
+  `h-keep-alive-period` without frames (0 → 45 s, `ChromeH2KeepAlivePeriod`,
+  set as `HTTP2Config.SendPingTimeout` in `transport/xhttp/client.go` ✅) it
+  sends a PING and drops the connection when no answer comes (timeout ❔ —
+  Mihomo uses its own `net/http` fork).
+- Check: a long run (100+ probes after idle) next to a REALITY TCP control; the
+  failures' timing against the 45 s PING cycle is the next thing to look at.
+  Accept it if it stays rare: the next request goes through.
 
 **xHTTP is very slow on some sites, lots of new TLS connections to the node.**
 - Cause: no `reuse-settings` in the Mihomo entry (the host's
