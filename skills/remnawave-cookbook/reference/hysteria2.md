@@ -157,11 +157,11 @@ node's story consistent.
 server that listens only on a unix socket — but it can reach the node's own
 public name, where the TCP side (REALITY falling back to the web server)
 answers with the decoy. The reference implementation uses
-`https://<node name>` with `rewriteHost: true`; ❔ whether the hairpin works
-on every provider — check with an HTTP/3 request from a browser (Chrome:
-`--origin-to-force-quic-on=<name>:443`, no proxy), which should show the decoy
-page with protocol `h3`. A `502` means the proxy could not reach it: fall back
-to `404`.
+`https://<node name>` with `rewriteHost: true`, and it works there 🔶: Chrome
+started with `--origin-to-force-quic-on=<name>:443 --no-proxy-server` loaded
+the decoy page with every request's protocol `h3`. Check it per provider — the
+request loops out to the node's public address and back — and fall back to
+`404` if the page comes back as `502`.
 
 ## Measured 🔶
 
@@ -190,8 +190,11 @@ does not stall after idle.
   proxy) will fight the listener — enable such nodes last and check them
   separately. 💡
 - ❔ quic-go asks the kernel for large UDP buffers and logs a warning when it
-  cannot get them; if the node's log shows it, raise `net.core.rmem_max` /
-  `wmem_max`.
+  cannot get them. The node container runs as root with `NET_ADMIN`, which
+  lets it force the size past `net.core.rmem_max` — so the warning is not
+  expected there; none appeared in the node container's log on the first node
+  (🔶, and that log may not carry Xray's own stderr). If it does appear, raise
+  `net.core.rmem_max` / `wmem_max`.
 
 ## Adding it to a node, in order
 
