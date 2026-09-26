@@ -1,0 +1,70 @@
+# remnawave-cookbook
+
+[English](README.md) · **Русский**
+
+Skill для ИИ-агента (плагин Claude Code) для эксплуатации флота **Remnawave**, устроенного так:
+
+- **VLESS + REALITY (TCP, Vision)** на порту 443, с **сайтом-приманкой (self-steal)** за **Angie/nginx на unix-сокете**;
+- **VLESS поверх xHTTP на том же порту 443** — веб-сервер передаёт его в Xray по одному секретному пути;
+- клиенты **Mihomo (Clash.Meta)**;
+- всё создаётся **через API панели**, идемпотентно.
+
+«Cookbook» в обоих смыслах: общие рецепты и факты о протоколах и связках — и эталонная реализация, в которой они работают.
+
+## Чем отличается
+
+- **Каждый факт привязан к версии и ссылается на файл-источник.** Стек меняется быстро, а ИИ-ассистенты уверенно отвечают по памяти. Этот skill отвечает по коду Remnawave 2.8.0, Xray v26.6.27 и Mihomo v1.19.31 и помечает всё, что проверить не удалось.
+- **Написан с живого флота, затем обезличен.** Никаких IP-адресов, доменов, названий провайдеров и нод. Это проверяет CI, в том числе по секретному списку запрещённых строк, который в репозиторий не попадает.
+- **Уроки, которые чего-то стоили.** Тег как идентичность inbound и каскад при переименовании; ноды, которые панель выключает сама; почему по умолчанию `grpc_pass`, а не `proxy_pass`; зачем Mihomo `reuse-settings`.
+
+## Состояние
+
+Этап 1 плана: роутер (`SKILL.md`) и основной справочник — архитектура, контракты API Remnawave 2.8, Xray v26.6.27, источники.
+
+Дальше:
+- страницы про Angie и Mihomo;
+- диагностика;
+- карта операций;
+- офлайн-валидатор и аудит живого флота;
+- точки входа для других ассистентов;
+- заметки о том, что дальше: Hysteria2, CDN, WebSocket.
+
+## Структура
+
+```
+.claude-plugin/              манифесты плагина и marketplace
+skills/remnawave-cookbook/
+  SKILL.md                   роутер: архитектура, инварианты, проверенные версии
+  reference/                 architecture · remnawave-2.8 · xray-v26.6.27 · sources
+tools/tells-guard.sh         проверка CI: ничто здесь не должно указывать на реальную инфраструктуру
+```
+
+## Установка (Claude Code)
+
+```
+/plugin marketplace add nargothrondir/remnawave-cookbook
+/plugin install remnawave-cookbook@remnawave-cookbook
+```
+
+Или скопируйте `skills/remnawave-cookbook/` в `~/.claude/skills/` или `<проект>/.claude/skills/`.
+
+## Эталонная реализация
+
+Описанная здесь архитектура работает из двух публичных репозиториев:
+- [`ansible-playbooks`](https://github.com/nargothrondir/ansible-playbooks) — провижининг и автоматизация панели через API;
+- [`docker-stacks`](https://github.com/nargothrondir/docker-stacks) — стек ноды: нода Remnawave, Angie, ACME-хук.
+
+## Благодарности
+
+- **[Case211/skill-remnawave-xray](https://github.com/Case211/skill-remnawave-xray)** — спасибо! Устройство этого skill вдохновлено той работой: роутер над справочными страницами, диагностика от симптома, исполняемая проверка согласованности, синхронизированные точки входа. Текст здесь написан заново по первоисточникам, для другой архитектуры и других версий. Ни текст, ни код не копировались, поэтому у репозитория своя лицензия (MIT), а у оригинала — AGPL-3.0.
+- **[XTLS/Xray-core](https://github.com/XTLS/Xray-core)** и статья RPRX [XHTTP: Beyond REALITY](https://github.com/XTLS/Xray-core/discussions/4113).
+- **[Remnawave](https://github.com/remnawave)**, **[MetaCubeX/mihomo](https://github.com/MetaCubeX/mihomo)**, **Angie**.
+- **[legiz-ru/my-remnawave](https://github.com/legiz-ru/my-remnawave)** — за разобранный пример xHTTP через nginx с Remnawave.
+
+## Дисклеймер
+
+Образовательный материал о технологиях приватности и обхода цензуры. Применяйте в рамках закона своей юрисдикции. В примерах — заглушки (`example.com`, документационные диапазоны адресов). Это шаблоны, а не готовые конфиги для запуска.
+
+## Лицензия
+
+MIT — см. [LICENSE](LICENSE).

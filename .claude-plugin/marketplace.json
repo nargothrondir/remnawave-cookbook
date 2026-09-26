@@ -1,0 +1,14 @@
+{
+  "name": "remnawave-cookbook",
+  "owner": { "name": "nargothrondir" },
+  "plugins": [
+    {
+      "name": "remnawave-cookbook",
+      "description": "Remnawave fleet cookbook: REALITY + self-steal behind Angie, xHTTP on the same port, Mihomo clients, API automation — verified facts, diagnostics, audit",
+      "version": "0.1.0",
+      "author": { "name": "nargothrondir" },
+      "license": "MIT",
+      "source": "./"
+    }
+  ]
+}

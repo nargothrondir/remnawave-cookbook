@@ -1,0 +1,28 @@
+---
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tells-guard:
+    name: tells-guard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      # FORBIDDEN_STRINGS is a repository secret (newline-separated). Secrets
+      # are not passed to workflows triggered from forks, so a fork PR runs
+      # checks [1] and [2] only and says so; pushes to this repository require
+      # the secret, so a missing one fails instead of passing quietly.
+      - name: Run the guard
+        env:
+          FORBIDDEN_STRINGS: ${{ secrets.FORBIDDEN_STRINGS }}
+          REQUIRE_FORBIDDEN_STRINGS: ${{ github.event_name == 'push' && '1' || '0' }}
+        run: bash tools/tells-guard.sh

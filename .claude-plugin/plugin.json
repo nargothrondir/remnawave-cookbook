@@ -1,0 +1,11 @@
+{
+  "name": "remnawave-cookbook",
+  "description": "Remnawave fleet cookbook: VLESS REALITY + self-steal decoy behind Angie/nginx on a unix socket, VLESS xHTTP on the same port, Mihomo clients, API automation — facts pinned to verified versions, diagnostics, audit",
+  "version": "0.1.0",
+  "author": {
+    "name": "nargothrondir"
+  },
+  "homepage": "https://github.com/nargothrondir/remnawave-cookbook",
+  "repository": "https://github.com/nargothrondir/remnawave-cookbook",
+  "license": "MIT"
+}
