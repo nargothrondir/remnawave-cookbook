@@ -15,6 +15,8 @@ actually *does*. Read both, in that order.
 | Xray docs | `XTLS/Xray-docs-next` | `main` | `docs/config/transports/xhttp.md` → discussion #4113 |
 | XHTTP design notes | `XTLS/Xray-core` discussion #4113 | — | web server advice (`grpc_pass`), XMUX rationale, logging advice |
 | Xray examples | `XTLS/Xray-examples` | `main` | `VLESS-XHTTP3-Nginx/nginx.conf` |
+| Xray-core issues | `XTLS/Xray-core` | — | #4446, #4716, #4894 (`grpc_pass` rough edges); #6444 (silently dead pooled connections); discussion #5822 (community advice to use `proxy_pass`) |
+| Community example | `legiz-ru/my-remnawave` | `main` | README, xHTTP behind nginx — `grpc_pass` → `proxy_pass` on 2026-04-15 |
 | Mihomo | `MetaCubeX/mihomo` | `v1.19.31` | `transport/xhttp/{config,client,reuse}.go`; `adapter/outbound/vless.go` |
 | nginx | `nginx/nginx` | `master` | `src/http/modules/ngx_http_grpc_module.c` (request body is never buffered) |
 | Angie | `webserver-llc/angie` | `Angie-1.12.1` | `CHANGES` (HTTP/2 to backends arrived in 1.12.0) |
