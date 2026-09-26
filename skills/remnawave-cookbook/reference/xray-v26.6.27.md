@@ -50,9 +50,8 @@ with `/`. A web-server `location` prefix must match that form.
 
 **Modes.** The server accepts all three by default (`mode: auto`); a client in
 `auto` picks one. The Xray client picks stream-up over TLS H2 and stream-one
-over REALITY; **Mihomo picks packet-up over TLS** (see `mihomo.md`, later
-stage). Behind a web server, packet-up survives almost anything; stream-up
-needs the request body to be streamed (see `angie.md`, later stage).
+over REALITY; **Mihomo picks packet-up over TLS** (see `mihomo.md`). Behind a web server, packet-up survives almost anything; stream-up
+needs the request body to be streamed (see `angie.md`).
 
 **XMUX** — client-side connection reuse ✅ (`infra/conf/transport_internet.go`):
 when the whole `xmux` block is empty the Xray client uses `maxConnections: 6`,

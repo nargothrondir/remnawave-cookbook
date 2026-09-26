@@ -29,11 +29,17 @@ protocols and combinations, and a reference implementation that runs them.
 
 ## Status
 
-Stages 1–5 of the plan: the router, the reference (architecture, Remnawave 2.8
-API contracts, Xray v26.6.27, Angie, Mihomo, automation, sources), an
-operations map, diagnostics, examples, an offline validator with tests, the
-live fleet audit (in the reference implementation), and entry points for other
-assistants. Next: notes on what comes next (Hysteria2, CDN, WebSocket).
+All six stages of the plan are in:
+
+- the router and the reference (architecture, Remnawave 2.8 API contracts,
+  Xray v26.6.27, Angie, Mihomo, automation, sources);
+- an operations map, diagnostics and examples;
+- an offline validator with tests, and the live fleet audit in the reference
+  implementation;
+- entry points for other assistants;
+- growth notes: a matrix of what else the stack can do (Hysteria2, xHTTP H3,
+  split directions, CDN, WebSocket, gRPC) and a Hysteria2 page checked against
+  source before it is built.
 
 ## Layout
 
@@ -41,7 +47,7 @@ assistants. Next: notes on what comes next (Hysteria2, CDN, WebSocket).
 .claude-plugin/              plugin and marketplace manifests
 skills/remnawave-cookbook/
   SKILL.md                   router: architecture, invariants, verified versions
-  reference/                 architecture · remnawave-2.8 · xray-v26.6.27 · angie · mihomo · automation · sources
+  reference/                 architecture · remnawave-2.8 · xray-v26.6.27 · angie · mihomo · automation · growth · hysteria2 · sources
   operations.md              task → what to run → what success looks like
   diagnostics.md             symptom → cause → check → fix
   examples/                  depersonalised profile, Angie blocks, Mihomo entries

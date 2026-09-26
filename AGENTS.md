@@ -41,6 +41,8 @@ was read from.
 | Angie/nginx: decoy block, xHTTP location, grpc_pass vs proxy_pass | `skills/remnawave-cookbook/reference/angie.md` |
 | Mihomo client | `skills/remnawave-cookbook/reference/mihomo.md` |
 | Automation through the API | `skills/remnawave-cookbook/reference/automation.md` |
+| Growth: protocols and combinations beyond what runs | `skills/remnawave-cookbook/reference/growth.md` |
+| Hysteria2 in depth | `skills/remnawave-cookbook/reference/hysteria2.md` |
 | Sources and how to re-check a fact | `skills/remnawave-cookbook/reference/sources.md` |
 | Operations: task → what to run → success | `skills/remnawave-cookbook/operations.md` |
 | Diagnostics: symptom → cause → check → fix | `skills/remnawave-cookbook/diagnostics.md` |

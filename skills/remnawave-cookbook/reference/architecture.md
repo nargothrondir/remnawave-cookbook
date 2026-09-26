@@ -41,7 +41,7 @@ unix sockets are reachable across them.
 | Client's TLS peer | Xray (REALITY) | Angie |
 | Certificate check | REALITY key, not a CA chain | ordinary CA chain for the node's name |
 | On the wire | TLS 1.3 to the node's name | HTTPS (HTTP/2) to the node's name |
-| Through a CDN | no | possible (see the growth notes, later stage) |
+| Through a CDN | no | possible (`growth.md`) |
 
 ## Ports
 
@@ -53,7 +53,7 @@ unix sockets are reachable across them.
 
 Nothing else needs to be open for users. ACME uses DNS-01, so port 80 stays
 closed. UDP 443 is free — the natural home for Hysteria2 or xHTTP over HTTP/3,
-but only one of them (later stage).
+but only one of them (`growth.md`, `hysteria2.md`).
 
 ## Control plane
 
@@ -62,5 +62,5 @@ but only one of them (later stage).
   (a WireGuard-based mesh in the reference implementation).
 - **Everything the fleet depends on is created through APIs, idempotently** —
   panel objects, Dockhand stacks and their environment, secrets from the secret
-  store. See the automation notes (later stage) and the reference
+  store. See `automation.md` and the reference
   implementation: `ansible-playbooks` and `docker-stacks` (linked in README).

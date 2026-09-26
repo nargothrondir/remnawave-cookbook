@@ -63,8 +63,8 @@ reuse-settings:
 ## HTTP version ✅
 
 `NewTransport`: `alpn: [h3]` → HTTP/3 (QUIC); `alpn: [http/1.1]` → HTTP/1.1;
-anything else → HTTP/2. HTTP/3 needs something listening on UDP 443 (see the
-growth notes).
+anything else → HTTP/2. HTTP/3 needs something listening on UDP 443 (see
+`growth.md`).
 
 ## Measuring from the client
 

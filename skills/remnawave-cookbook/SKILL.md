@@ -103,6 +103,8 @@ the same file at the new tag before relying on it (`reference/sources.md`).
 | Angie/nginx: decoy block, the xHTTP location line by line, `grpc_pass` vs `proxy_pass`, reading the error log | `reference/angie.md` |
 | Mihomo: what the panel renders, mode selection, `reuse-settings`, measuring | `reference/mihomo.md` |
 | Driving it through the API: rules, adding a protocol, renaming tags safely, automation pitfalls | `reference/automation.md` |
+| What else the stack can do: Hysteria2, xHTTP H3, split directions, CDN, WebSocket, gRPC — with cost and evidence | `reference/growth.md` |
+| Hysteria2 in depth: server, certificate trap, what Mihomo gets, ports | `reference/hysteria2.md` |
 | Where each fact comes from and how to re-check it | `reference/sources.md` |
 | Which operation to run for which task, and what success looks like | `operations.md` |
 | Something is broken → symptom, cause, check, fix | `diagnostics.md` |

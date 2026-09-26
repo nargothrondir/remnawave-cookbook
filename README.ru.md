@@ -19,15 +19,14 @@ Skill для ИИ-агента (плагин Claude Code) для эксплуа�
 
 ## Состояние
 
-Этапы 1–5 плана готовы:
+Этапы 1–6 плана готовы:
 - роутер (`SKILL.md`);
 - справочник: архитектура, контракты API Remnawave 2.8, Xray v26.6.27, Angie, Mihomo, автоматизация, источники;
 - карта операций, диагностика и примеры;
 - офлайн-валидатор с тестами;
 - аудит живого флота (в эталонной реализации);
-- точки входа для других ассистентов.
-
-Дальше — заметки о том, что дальше: Hysteria2, CDN, WebSocket.
+- точки входа для других ассистентов;
+- «на вырост»: таблица того, что ещё умеет стек (Hysteria2, xHTTP H3, разделение потоков, CDN, WebSocket, gRPC), и страница про Hysteria2, сверенная с исходниками до начала работ.
 
 ## Структура
 
@@ -35,7 +34,7 @@ Skill для ИИ-агента (плагин Claude Code) для эксплуа�
 .claude-plugin/              манифесты плагина и marketplace
 skills/remnawave-cookbook/
   SKILL.md                   роутер: архитектура, инварианты, проверенные версии
-  reference/                 architecture · remnawave-2.8 · xray-v26.6.27 · angie · mihomo · automation · sources
+  reference/                 architecture · remnawave-2.8 · xray-v26.6.27 · angie · mihomo · automation · growth · hysteria2 · sources
   operations.md              задача → что запускать → как выглядит успех
   diagnostics.md             симптом → причина → проверка → исправление
   examples/                  обезличенные профиль, блоки Angie, записи Mihomo
