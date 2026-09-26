@@ -10,7 +10,7 @@
 #       ranges that identify nothing (loopback, private, CGNAT, link-local)
 #   [2] domain-looking strings outside an allowlist of upstream projects and
 #       example.* names
-#   [3] FORBIDDEN_STRINGS — a newline-separated list kept in a CI secret, never
+#   [3] FORBIDDEN_STRINGS — a list (one per line, or comma-separated) kept in a CI secret, never
 #       in the repository: the real domains, provider and node names this
 #       guard exists to keep out. A list of what must not leak cannot itself be
 #       published, so it lives where only CI can read it.
@@ -70,7 +70,8 @@ if [ -z "${FORBIDDEN_STRINGS:-}" ]; then
 else
   hits=0
   while IFS= read -r needle; do
-    needle=$(printf '%s' "$needle" | tr -d '\r')
+    # Trim, so "a, b" and "a,b" mean the same list.
+    needle=$(printf '%s' "$needle" | tr -d '\r' | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
     [ -n "$needle" ] || continue
     # Report the file and line, never the string itself: the log is public too.
     found=$(echo "$files" | xargs grep -nHiF -- "$needle" 2>/dev/null | cut -d: -f1,2 || true)
@@ -78,7 +79,8 @@ else
       echo "$found" | sed 's/^/  ::error::forbidden string at /'
       hits=1
     fi
-  done <<< "$FORBIDDEN_STRINGS"
+  done <<< "$(printf '%s' "$FORBIDDEN_STRINGS" | tr ',' '
+')"
   if [ "$hits" = 1 ]; then fail=1; else echo "  ok"; fi
 fi
 
