@@ -13,7 +13,7 @@ Versions: Xray v26.6.27 · Remnawave panel 2.8.0 · Mihomo v1.19.31.
 |---|---|---|---|---|---|
 | **REALITY TCP (Vision)** | ✅ | ✅ | ✅ | running | none beyond TCP 443 |
 | **xHTTP behind Angie (TLS, H2)** | ✅ | ✅ (`securityLayer: TLS`) | ✅ | running | the web server in the data path; secret path |
-| **Hysteria2** | ✅ `hysteria` v2, TLS required | ✅ validator + `buildHysteria2Node` | ✅ `type: hysteria2` | next | UDP port + firewall rule; a certificate (see the panel trap in `hysteria2.md`); UDP is throttled on some networks |
+| **Hysteria2** | ✅ `hysteria` v2, TLS required | ✅ validator + `buildHysteria2Node` | ✅ `type: hysteria2` | running (one node, rolling out) | UDP port + firewall rule; a certificate (see the panel trap in `hysteria2.md`); UDP is throttled on some networks |
 | xHTTP over HTTP/3 (QUIC) | ✅ server needs no H3 when a web server converts H3 → H1/H2 (#4113) | ✅ host ALPN `h3` | ✅ `alpn: [h3]` → HTTP/3 | idea | the web server must listen QUIC on **UDP 443 — the same port Hysteria2 would want**; pick one |
 | xHTTP split directions (`downloadSettings`) | ✅ client-side (#4113) | ✅ via the host's `xhttpExtraParams.downloadSettings` | ✅ `download-settings` | idea | a second name or a CDN for one direction; more moving parts |
 | xHTTP through a CDN | ✅ packet-up passes most CDNs (#4113) | ✅ (host address = CDN name) | ✅ | idea | a CDN account and a proxied DNS name that is NOT the REALITY name; CDN rules below |
@@ -35,9 +35,10 @@ Versions: Xray v26.6.27 · Remnawave panel 2.8.0 · Mihomo v1.19.31.
 
 ## Choosing the next step
 
-- **Hysteria2** — the most different traffic shape from what runs (UDP/QUIC),
-  so the best hedge against TCP-side blocking; costs a UDP port and a
-  certificate decision.
+- **Hysteria2** — the most different traffic shape from the TCP entries
+  (UDP/QUIC), so the best hedge against TCP-side blocking; costs a UDP port
+  and a certificate decision. Taken in the reference implementation — see
+  `hysteria2.md` for the layout that runs and what it measured.
 - **xHTTP through a CDN** — hides the node's address from the client path
   entirely; costs a CDN and a second name, and the CDN sees the TLS inside.
 - **xHTTP H3** — only if UDP 443 is not given to Hysteria2.
