@@ -69,4 +69,7 @@ and on its profile, and whether the node stack's `XHTTP_PATH` matches whether
 the node serves xHTTP. Profiles deliberately left on old tags are listed in the
 inventory and reported as warnings. It changes nothing (`changed=0`).
 
-(Arriving with stage 4; this page describes its contract.)
+Source: [`playbooks/audit-fleet.yml`](https://github.com/nargothrondir/ansible-playbooks/blob/main/playbooks/audit-fleet.yml)
+in the reference implementation. To reproduce it elsewhere, the same checks
+are four GETs (`/api/config-profiles`, `/api/internal-squads`, `/api/hosts`,
+`/api/nodes`) plus your stack manager's environment per node.
