@@ -26,3 +26,23 @@ jobs:
           FORBIDDEN_STRINGS: ${{ secrets.FORBIDDEN_STRINGS }}
           REQUIRE_FORBIDDEN_STRINGS: ${{ github.event_name == 'push' && '1' || '0' }}
         run: bash tools/tells-guard.sh
+
+  validate:
+    name: validate.py tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      # One test per rule: a rule that stops biting fails here.
+      - name: Run the tests
+        run: python -m unittest discover -s tests -v
+
+      # The shipped example must stay valid (placeholders are notes, not errors).
+      - name: Validate the shipped example
+        run: python skills/remnawave-cookbook/validate.py skills/remnawave-cookbook/examples/profile.json

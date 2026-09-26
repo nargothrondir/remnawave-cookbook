@@ -107,13 +107,15 @@ the same file at the new tag before relying on it (`reference/sources.md`).
 | Which operation to run for which task, and what success looks like | `operations.md` |
 | Something is broken → symptom, cause, check, fix | `diagnostics.md` |
 | Depersonalised templates: profile, Angie blocks, Mihomo entries | `examples/` |
-
-The offline validator and the live fleet audit arrive in the next stage.
+| Check a config: `python validate.py <profile.json> [rendered angie.conf]`, and what each finding means | `audit.md` |
 
 ## How to answer
 
 - **Reference** — open the matching `reference/` file and answer from it, with
   its evidence mark. Do not fill gaps from memory: say what is unverified.
+- **A config to review** — run `validate.py` on it (with the rendered web
+  config if available) and explain its findings from `audit.md`; judge only
+  what it cannot see.
 - **Something is broken** — start from `diagnostics.md`: match the symptom, run
   its check before proposing a fix. Where it says 💡 hypothesis, propose a
   measurement, not a change.

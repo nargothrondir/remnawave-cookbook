@@ -29,10 +29,10 @@ protocols and combinations, and a reference implementation that runs them.
 
 ## Status
 
-Stages 1–2 of the plan: the router, the reference (architecture, Remnawave 2.8
+Stages 1–3 of the plan: the router, the reference (architecture, Remnawave 2.8
 API contracts, Xray v26.6.27, Angie, Mihomo, automation, sources), an
-operations map, diagnostics and examples. Next: an offline validator, a live
-fleet audit, entry points for other assistants, and notes on what comes next
+operations map, diagnostics, examples and an offline validator with tests.
+Next: a live fleet audit, entry points for other assistants, and notes on what comes next
 (Hysteria2, CDN, WebSocket).
 
 ## Layout
@@ -45,6 +45,9 @@ skills/remnawave-cookbook/
   operations.md              task → what to run → what success looks like
   diagnostics.md             symptom → cause → check → fix
   examples/                  depersonalised profile, Angie blocks, Mihomo entries
+  validate.py                offline check of a profile export + rendered web config (stdlib)
+  audit.md                   how to run it, what each finding means; the live fleet audit
+tests/                       one test per validator rule
 tools/tells-guard.sh         CI guard: nothing here may identify real infrastructure
 ```
 
