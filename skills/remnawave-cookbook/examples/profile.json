@@ -1,0 +1,48 @@
+{
+  "log": { "loglevel": "warning" },
+  "inbounds": [
+    {
+      "tag": "XX-VLESS-TCP-REALITY",
+      "port": 443,
+      "protocol": "vless",
+      "settings": { "clients": [], "decryption": "none" },
+      "sniffing": { "enabled": true, "destOverride": ["http", "tls", "quic"] },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "dest": "/dev/shm/nginx.sock",
+          "xver": 1,
+          "show": false,
+          "spiderX": "",
+          "serverNames": ["node.example.com"],
+          "shortIds": ["<SHORT_ID_HEX_EVEN_LENGTH>"],
+          "privateKey": "<REALITY_PRIVATE_KEY>"
+        }
+      }
+    },
+    {
+      "tag": "XX-VLESS-XHTTP-TLS",
+      "port": 443,
+      "listen": "/dev/shm/xhttp.sock,0666",
+      "protocol": "vless",
+      "settings": { "clients": [], "decryption": "none" },
+      "sniffing": { "enabled": true, "destOverride": ["http", "tls", "quic"] },
+      "streamSettings": {
+        "network": "xhttp",
+        "xhttpSettings": { "mode": "auto", "path": "/<SECRET_PATH>/" },
+        "sockopt": { "trustedXForwardedFor": ["X-Real-IP"] }
+      }
+    }
+  ],
+  "outbounds": [
+    { "tag": "DIRECT", "protocol": "freedom" },
+    { "tag": "BLOCK", "protocol": "blackhole" }
+  ],
+  "routing": {
+    "rules": [
+      { "type": "field", "ip": ["geoip:private"], "outboundTag": "BLOCK" },
+      { "type": "field", "protocol": ["bittorrent"], "outboundTag": "BLOCK" }
+    ]
+  }
+}

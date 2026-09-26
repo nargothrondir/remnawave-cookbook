@@ -1,0 +1,42 @@
+# Shape of the two entries a Remnawave 2.8.0 subscription renders for Mihomo
+# (mihomo.generator.service.ts), with placeholders. Not a complete config.
+# The xHTTP entry is checked against the generator; the REALITY option names
+# are Mihomo's standard ones, not re-read in the generator line by line.
+proxies:
+  - name: "XX-1 Reality TCP"
+    type: vless
+    server: node.example.com
+    port: 443
+    uuid: <USER_UUID>
+    network: tcp
+    flow: xtls-rprx-vision
+    packet-encoding: xudp
+    tls: true
+    servername: node.example.com
+    client-fingerprint: chrome
+    reality-opts:
+      public-key: <REALITY_PUBLIC_KEY>
+      short-id: <SHORT_ID>
+
+  - name: "XX-1 xHTTP"
+    type: vless
+    server: node.example.com
+    port: 443
+    uuid: <USER_UUID>
+    network: xhttp
+    packet-encoding: xudp
+    tls: true
+    servername: node.example.com
+    alpn: [h2, http/1.1]
+    client-fingerprint: chrome
+    xhttp-opts:
+      path: /<SECRET_PATH>/
+      host: node.example.com
+      mode: auto                        # Mihomo resolves auto to packet-up over TLS
+      reuse-settings:                   # from the host's xhttpExtraParams.xmux — not optional for Mihomo
+        max-concurrency: "16-32"
+        max-connections: 0
+        c-max-reuse-times: 0
+        h-max-request-times: "600-900"
+        h-max-reusable-secs: "1800-3000"
+        h-keep-alive-period: 0

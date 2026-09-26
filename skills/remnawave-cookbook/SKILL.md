@@ -100,14 +100,24 @@ the same file at the new tag before relying on it (`reference/sources.md`).
 | How traffic flows, ports, what listens where | `reference/architecture.md` |
 | Panel model, API contracts, tag identity, auto-disable | `reference/remnawave-2.8.md` |
 | Xray: REALITY on a socket, xHTTP settings and defaults, timeouts, trusted headers | `reference/xray-v26.6.27.md` |
+| Angie/nginx: decoy block, the xHTTP location line by line, `grpc_pass` vs `proxy_pass`, reading the error log | `reference/angie.md` |
+| Mihomo: what the panel renders, mode selection, `reuse-settings`, measuring | `reference/mihomo.md` |
+| Driving it through the API: rules, adding a protocol, renaming tags safely, automation pitfalls | `reference/automation.md` |
 | Where each fact comes from and how to re-check it | `reference/sources.md` |
+| Which operation to run for which task, and what success looks like | `operations.md` |
+| Something is broken → symptom, cause, check, fix | `diagnostics.md` |
+| Depersonalised templates: profile, Angie blocks, Mihomo entries | `examples/` |
 
-More reference pages, diagnostics, the operations map, the offline validator
-and the fleet audit arrive in the next stages of this repository.
+The offline validator and the live fleet audit arrive in the next stage.
 
 ## How to answer
 
 - **Reference** — open the matching `reference/` file and answer from it, with
   its evidence mark. Do not fill gaps from memory: say what is unverified.
+- **Something is broken** — start from `diagnostics.md`: match the symptom, run
+  its check before proposing a fix. Where it says 💡 hypothesis, propose a
+  measurement, not a change.
+- **An operation is needed** — `operations.md` for what to run and the output
+  that proves it worked; one node first.
 - **A fact is missing or the version differs** — say so, and point at the
   upstream file to read (`reference/sources.md`), rather than guessing.
