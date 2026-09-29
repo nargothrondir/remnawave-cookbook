@@ -45,6 +45,12 @@ All six stages of the plan are in:
 
 ```
 .claude-plugin/              plugin and marketplace manifests
+skills/edge-check/           procedure: probe a node the way a scanner sees it
+skills/delay-probe/          procedure: measure an entry from the Mihomo client, A/B fairly
+skills/config-review/        procedure: validate.py on a profile + rendered web config, findings → fixes
+agents/pinned-source-checker.md   settles a claim against upstream source at a version tag
+bin/edge-check               read-only HTTPS/TLS probes → PASS/FAIL (on the Bash PATH while enabled)
+bin/mihomo-probe.ps1         delay tests through Mihomo's controller → CSV + summary
 skills/remnawave-cookbook/
   SKILL.md                   router: architecture, invariants, verified versions
   reference/                 architecture · remnawave-2.8 · xray-v26.6.27 · angie · mihomo · automation · growth · hysteria2 · sources
@@ -69,8 +75,28 @@ tools/
 /plugin install remnawave-cookbook@remnawave-cookbook
 ```
 
-Or copy `skills/remnawave-cookbook/` into `~/.claude/skills/` or
-`<project>/.claude/skills/`.
+What you get, namespaced under the plugin:
+
+| Component | Kind | Use |
+|---|---|---|
+| `remnawave-cookbook` | skill | the reference: architecture, invariants, verified facts, diagnostics |
+| `edge-check` | skill + `bin/edge-check` | does a node look like a plain nginx site from outside? TLS, certificate, headers, 404, every error page, a foreign Host |
+| `delay-probe` | skill + `bin/mihomo-probe.ps1` | delay tests from the Mihomo client: burst vs after-idle, fair A/B, when a difference is real |
+| `config-review` | skill | `validate.py` on an exported profile + the rendered web config; each finding → its fix |
+| `pinned-source-checker` | agent | CONFIRMED / REFUTED / UNVERIFIABLE for a claim about Xray, Remnawave, Mihomo, Angie or nginx, quoted from source at a version tag |
+
+Skills load on their own for matching questions, or explicitly
+(`/remnawave-cookbook:edge-check`). The `bin/` scripts are on the Bash tool's
+`PATH` while the plugin is enabled.
+
+To make the plugin available to everyone working in a repository, register the
+marketplace and enable the plugin in that repository's `.claude/settings.json`
+(`extraKnownMarketplaces`, `enabledPlugins`); Claude Code asks each user to
+trust the marketplace once.
+
+Without the plugin system, copy `skills/remnawave-cookbook/` into
+`~/.claude/skills/` or `<project>/.claude/skills/` — the reference works alone;
+the procedures expect `bin/` next to them.
 
 ## Other assistants
 

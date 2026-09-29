@@ -1,7 +1,7 @@
 {
   "name": "remnawave-cookbook",
-  "description": "Remnawave fleet cookbook: VLESS REALITY + self-steal decoy behind Angie/nginx on a unix socket, VLESS xHTTP on the same port, Mihomo clients, API automation — facts pinned to verified versions, diagnostics, audit",
-  "version": "0.1.0",
+  "description": "Remnawave fleet cookbook: VLESS REALITY + self-steal decoy behind Angie/nginx on a unix socket, VLESS xHTTP on the same port, Hysteria2, Mihomo clients, API automation — facts pinned to verified versions, diagnostics, and tools: edge-check, delay-probe, config-review, a pinned-source checker",
+  "version": "0.2.0",
   "author": {
     "name": "nargothrondir"
   },

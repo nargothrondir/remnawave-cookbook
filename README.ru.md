@@ -32,6 +32,12 @@ Skill для ИИ-агента (плагин Claude Code) для эксплуа�
 
 ```
 .claude-plugin/              манифесты плагина и marketplace
+skills/edge-check/           процедура: проверить ноду так, как её видит сканер
+skills/delay-probe/          процедура: замер записи из клиента Mihomo, честный A/B
+skills/config-review/        процедура: validate.py на профиль и отрендеренный конфиг, находки → исправления
+agents/pinned-source-checker.md   проверяет утверждение по исходникам upstream на теге версии
+bin/edge-check               пробы HTTPS/TLS только на чтение → PASS/FAIL (в PATH Bash, пока плагин включён)
+bin/mihomo-probe.ps1         проверки задержки через контроллер Mihomo → CSV и сводка
 skills/remnawave-cookbook/
   SKILL.md                   роутер: архитектура, инварианты, проверенные версии
   reference/                 architecture · remnawave-2.8 · xray-v26.6.27 · angie · mihomo · automation · growth · hysteria2 · sources
@@ -56,7 +62,28 @@ tools/
 /plugin install remnawave-cookbook@remnawave-cookbook
 ```
 
-Или скопируйте `skills/remnawave-cookbook/` в `~/.claude/skills/` или `<проект>/.claude/skills/`.
+Что входит (имена с префиксом плагина):
+
+| Компонент | Вид | Зачем |
+|---|---|---|
+| `remnawave-cookbook` | skill | справочник: архитектура, инварианты, проверенные факты, диагностика |
+| `edge-check` | skill + `bin/edge-check` | выглядит ли нода снаружи как обычный сайт на nginx: TLS, сертификат, заголовки, 404, все страницы ошибок, чужой Host |
+| `delay-probe` | skill + `bin/mihomo-probe.ps1` | замер задержки из клиента Mihomo: burst и после простоя, честный A/B, когда разница реальна |
+| `config-review` | skill | `validate.py` на экспорт профиля и отрендеренный конфиг веб-сервера; каждая находка → её исправление |
+| `pinned-source-checker` | агент | CONFIRMED / REFUTED / UNVERIFIABLE для утверждения про Xray, Remnawave, Mihomo, Angie или nginx — с цитатой из исходника на теге версии |
+
+Skills подключаются сами на подходящие вопросы или явно
+(`/remnawave-cookbook:edge-check`). Скрипты из `bin/` лежат в `PATH` инструмента
+Bash, пока плагин включён.
+
+Чтобы плагин был у всех, кто работает в репозитории, зарегистрируйте
+marketplace и включите плагин в `.claude/settings.json` этого репозитория
+(`extraKnownMarketplaces`, `enabledPlugins`); Claude Code один раз спросит
+каждого пользователя, доверять ли marketplace.
+
+Без системы плагинов скопируйте `skills/remnawave-cookbook/` в
+`~/.claude/skills/` или `<проект>/.claude/skills/` — справочник работает сам
+по себе; процедурам нужен `bin/` рядом.
 
 ## Другие ассистенты
 
