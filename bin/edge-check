@@ -1,0 +1,169 @@
+#!/usr/bin/env bash
+# edge-check — does a REALITY self-steal node look like a plain nginx site?
+#
+# Probes a node the way a scanner would: TLS, the certificate, headers, the
+# 404 page, every error page the web server writes itself, and a Host header
+# naming no server. Read-only: plain HTTPS requests and one TLS handshake, the
+# same as any visitor. Why each check matters: skills/remnawave-cookbook/
+# reference/angie.md and diagnostics.md.
+#
+# Usage:
+#   edge-check <name> [--resolve <ip>] [--port <port>] [--timeout <seconds>]
+#
+#   <name>       the node's own name: REALITY serverNames, the certificate's name
+#   --resolve    connect to this address instead of resolving <name>. On the
+#                node itself, --resolve 127.0.0.1 goes in through REALITY, the
+#                way a visitor arrives
+#   --port       default 443
+#   --timeout    per request, default 8
+#
+# Output: one line per check (PASS / FAIL / WARN / INFO / SKIP) and a summary.
+# Exit status: 0 when nothing failed, 1 when a check failed, 2 on bad usage.
+# The output names the node — keep it out of anything public.
+set -uo pipefail
+
+usage() { sed -n '2,24p' "$0" | sed 's/^# \{0,1\}//'; }
+
+name="" resolve="" port=443 timeout=8
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --resolve) resolve=${2:-}; shift 2 ;;
+    --port) port=${2:-}; shift 2 ;;
+    --timeout) timeout=${2:-}; shift 2 ;;
+    -*) echo "edge-check: unknown option $1" >&2; usage >&2; exit 2 ;;
+    *) if [ -z "$name" ]; then name=$1; shift; else echo "edge-check: one name only" >&2; exit 2; fi ;;
+  esac
+done
+if [ -z "$name" ]; then usage >&2; exit 2; fi
+command -v curl >/dev/null || { echo "edge-check: curl is required" >&2; exit 2; }
+
+base="https://$name:$port"
+resolve_args=()
+[ -n "$resolve" ] && resolve_args=(--resolve "$name:$port:$resolve")
+connect=${resolve:-$name}
+
+pass=0 fail=0 warn=0
+report() { # result check detail
+  printf '%-5s  %-28s %s\n' "$1" "$2" "$3"
+  case "$1" in PASS) pass=$((pass + 1)) ;; FAIL) fail=$((fail + 1)) ;; WARN) warn=$((warn + 1)) ;; esac
+}
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+# request <label> <curl args...> — body to $tmp/<label>, prints the status code
+# (000 when the connection closed without an answer).
+request() {
+  local label=$1; shift
+  curl -sk --max-time "$timeout" "${resolve_args[@]}" -o "$tmp/$label" -w '%{http_code}' "$@" 2>/dev/null
+}
+
+# The signature at the foot of a web server's own error page, e.g. "nginx".
+signature() { grep -io '<hr><center>[^<]*</center>' "$1" 2>/dev/null | head -1 | sed -E 's/<[^>]*>//g'; }
+
+# error_page <check> <expected code> <curl args...>
+error_page() {
+  local check=$1 want=$2; shift 2
+  local label code sig
+  label=$(echo "$check" | tr -c 'A-Za-z0-9' '_')
+  code=$(request "$label" "$@")
+  sig=$(signature "$tmp/$label")
+  if [ -z "$code" ]; then
+    report FAIL "$check" "curl could not send the request"
+  elif [ "$code" != "$want" ]; then
+    report FAIL "$check" "status $code, expected $want"
+  elif [ -z "$sig" ]; then
+    report WARN "$check" "$code, no server signature in the body (custom page?)"
+  elif [ "$(echo "$sig" | tr '[:upper:]' '[:lower:]')" = nginx ]; then
+    report PASS "$check" "$code, signature nginx"
+  else
+    report FAIL "$check" "$code, signature \"$sig\" — the body names the server behind the disguise"
+  fi
+}
+
+echo "edge-check $name:$port${resolve:+ via $resolve}"
+echo
+
+# --- TLS ----------------------------------------------------------------------
+if command -v openssl >/dev/null; then
+  tls=$(echo | openssl s_client -connect "$connect:$port" -servername "$name" 2>/dev/null)
+  proto=$(echo "$tls" | grep -m1 -oE 'Protocol *: *TLSv[0-9.]+' | grep -oE 'TLSv[0-9.]+')
+  group=$(echo "$tls" | grep -m1 -oE 'Negotiated TLS1.3 group: *[A-Za-z0-9_]+' | awk '{print $NF}')
+  if [ "$proto" = "TLSv1.3" ]; then
+    report PASS "TLS version" "TLSv1.3"
+  elif [ -n "$proto" ]; then
+    report FAIL "TLS version" "$proto — REALITY targets must speak TLS 1.3"
+  else
+    report FAIL "TLS version" "no handshake"
+  fi
+  report INFO "TLS 1.3 group" "${group:-not reported by this openssl}"
+else
+  report SKIP "TLS version" "openssl not installed"
+fi
+
+# --- Certificate ----------------------------------------------------------------
+curl -s --max-time "$timeout" "${resolve_args[@]}" -o /dev/null "$base/" 2>/dev/null
+rc=$?
+case $rc in
+  0) report PASS "certificate" "valid for $name" ;;
+  60|51|35) report FAIL "certificate" "not valid for $name (curl exit $rc)" ;;
+  *) report FAIL "certificate" "no answer (curl exit $rc)" ;;
+esac
+
+# --- Headers ----------------------------------------------------------------------
+headers=$(curl -skI --max-time "$timeout" "${resolve_args[@]}" "$base/" 2>/dev/null | tr -d '\r')
+status=$(echo "$headers" | head -1 | awk '{print $2}')
+server=$(echo "$headers" | grep -i '^server:' | head -1 | cut -d' ' -f2-)
+case "$status" in
+  2??|3??) report PASS "front page" "status $status" ;;
+  *) report FAIL "front page" "status ${status:-none}" ;;
+esac
+case "$(echo "$server" | tr '[:upper:]' '[:lower:]')" in
+  "") report INFO "Server header" "absent" ;;
+  nginx*) report PASS "Server header" "$server" ;;
+  *) report WARN "Server header" "\"$server\" — rarer than nginx, a small signal" ;;
+esac
+for h in strict-transport-security alt-svc x-robots-tag; do
+  v=$(echo "$headers" | grep -i "^$h:" | head -1 | cut -d' ' -f2-)
+  report INFO "$h" "${v:-absent}"
+done
+
+# --- 404 ----------------------------------------------------------------------------
+code=$(request p404 "$base/edge-check-no-such-page-$$")
+sig=$(signature "$tmp/p404")
+if [ "$code" != 404 ]; then
+  report FAIL "404 page" "status $code, expected 404"
+elif [ -n "$sig" ] && [ "$(echo "$sig" | tr '[:upper:]' '[:lower:]')" != nginx ]; then
+  report FAIL "404 page" "signature \"$sig\""
+elif [ -n "$sig" ]; then
+  report PASS "404 page" "404, signature $sig"
+else
+  report PASS "404 page" "404, the site's own page"
+fi
+
+# --- Error pages the web server writes itself --------------------------------------
+long=$(head -c 9000 /dev/zero | tr '\0' a)
+error_page "400 broken URL (HTTP/1.1)" 400 --http1.1 "$base/%"
+if curl -V 2>/dev/null | grep -qw HTTP2; then
+  error_page "400 broken URL (HTTP/2)" 400 --http2 "$base/%"
+else
+  report SKIP "400 broken URL (HTTP/2)" "this curl has no HTTP/2 support"
+fi
+error_page "414 URI too long"          414 --http1.1 "$base/$long"
+error_page "405 TRACE"                 405 -X TRACE "$base/"
+error_page "501 Transfer-Encoding"     501 --http1.1 -H "Transfer-Encoding: foo" "$base/"
+error_page "416 Range past the end"    416 -H "Range: bytes=999999999-" "$base/"
+error_page "412 If-Match mismatch"     412 -H 'If-Match: "edge-check-no-match"' "$base/"
+
+# --- A Host header naming no server ------------------------------------------------
+code=$(request foreign --http1.1 -H "Host: example.com" "$base/")
+if [ "$code" = 000 ]; then
+  report PASS "foreign Host" "closed without an answer"
+else
+  report WARN "foreign Host" "answered $code — expected the catch-all to close (444)"
+fi
+
+echo
+echo "$pass passed, $fail failed, $warn warnings"
+[ "$fail" -eq 0 ]

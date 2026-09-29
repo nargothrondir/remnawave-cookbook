@@ -80,3 +80,18 @@ jobs:
       # Facts are pinned to versions; a pin that moved means facts to re-verify.
       - name: Compare SKILL.md with the reference implementation's pins
         run: bash tools/check-versions.sh
+
+  scripts:
+    name: plugin scripts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      # bin/ is on the Bash tool's PATH while the plugin is enabled, so every
+      # script there is code other people run: it must lint clean.
+      - name: shellcheck the plugin's bin/
+        run: shellcheck bin/edge-check
+
+      - name: edge-check prints its usage
+        run: bash bin/edge-check --help
