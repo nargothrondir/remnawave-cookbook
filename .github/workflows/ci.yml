@@ -96,6 +96,12 @@ jobs:
       - name: edge-check prints its usage
         run: bash bin/edge-check --help
 
+      # The authoritative manifest check, from Claude Code itself.
+      - name: claude plugin validate
+        run: |
+          npx -y @anthropic-ai/claude-code plugin validate .claude-plugin/plugin.json
+          npx -y @anthropic-ai/claude-code plugin validate .
+
       # The runner has PowerShell 7; parse errors fail the job without
       # running the probe (it needs a live Mihomo controller).
       - name: mihomo-probe.ps1 parses

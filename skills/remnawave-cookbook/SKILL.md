@@ -111,6 +111,15 @@ the same file at the new tag before relying on it (`reference/sources.md`).
 | Depersonalised templates: profile, Angie blocks, Mihomo entries | `examples/` |
 | Check a config: `python validate.py <profile.json> [rendered angie.conf]`, and what each finding means | `audit.md` |
 
+## Procedures and tools (this plugin)
+
+| Task | Use |
+|---|---|
+| Does a node still look like a plain nginx site from outside? | the `edge-check` skill (`bin/edge-check`) |
+| Measure an entry from the Mihomo client; compare two server configurations | the `delay-probe` skill (`bin/mihomo-probe.ps1`) |
+| Review a profile and its rendered web config before a change goes live | the `config-review` skill (`validate.py`) |
+| Settle a claim about Xray, Remnawave, Mihomo, Angie or nginx at a version tag | the `pinned-source-checker` agent |
+
 ## How to answer
 
 - **Reference** — open the matching `reference/` file and answer from it, with

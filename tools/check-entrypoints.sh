@@ -5,7 +5,9 @@
 #   [1] every skill path named in AGENTS.md exists;
 #   [2] every content page is listed in BOTH SKILL.md and AGENTS.md;
 #   [3] every relative Markdown link in the repository resolves;
-#   [4] the bundle builds and contains every page.
+#   [4] the bundle builds and contains every page;
+#   [5] every skill is named after its folder, and every skill, agent and
+#       bin/ script is listed in both READMEs.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -43,6 +45,23 @@ for p in SKILL.md $pages; do
   grep -qF "<!-- file: $SKILL/$p -->" "$tmp" || err "bundle is missing $SKILL/$p"
 done
 rm -f "$tmp"
+
+echo "[5] plugin components: skills are named after their folder, every component is in both READMEs"
+for dir in skills/*/; do
+  s=$(basename "$dir")
+  [ -f "$dir/SKILL.md" ] || { err "skills/$s has no SKILL.md"; continue; }
+  n=$(sed -n 's/^name: *//p' "$dir/SKILL.md" | head -1)
+  [ "$n" = "$s" ] || err "skills/$s/SKILL.md is named '$n', not '$s'"
+  for r in README.md README.ru.md; do
+    grep -qF "skills/$s/" "$r" || err "$r does not list skills/$s/"
+  done
+done
+for f in agents/*.md bin/*; do
+  [ -e "$f" ] || continue
+  for r in README.md README.ru.md; do
+    grep -qF "$f" "$r" || err "$r does not list $f"
+  done
+done
 
 if [ "$fail" = 1 ]; then echo "FAILED: the entry points and the content drifted apart."; exit 1; fi
 echo "OK: every entry point reaches every page."
