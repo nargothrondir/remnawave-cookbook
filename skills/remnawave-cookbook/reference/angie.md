@@ -77,9 +77,9 @@ ssl_session_tickets        off;
 
 `server_tokens off` removes the version from the `Server` header and from
 error pages, but the open-source Angie cannot rename itself: a custom or empty
-value needs Angie PRO ✅ (Angie docs, `server_tokens`). Angie is rare outside
-Russia while nginx is the most common server there is, so "Server: Angie" on a
-foreign VPS is a small, free signal 💡.
+value needs Angie PRO ✅ (Angie docs, `server_tokens`). Angie is far less
+common than nginx, the most widespread web server there is, so "Server: Angie"
+on a hosting VPS is a small, free signal 💡.
 
 The headers-more module does it:
 
