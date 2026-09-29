@@ -2,8 +2,8 @@
 """
 validate.py — check a Remnawave config profile (and optionally the web server
 config in front of it) against the invariants of this cookbook's architecture:
-REALITY on :443 with a self-steal decoy on a unix socket, and VLESS over xHTTP
-on a unix socket behind the same web server.
+REALITY on :443 with a self-steal decoy on a unix socket, VLESS over xHTTP
+on a unix socket behind the same web server, and Hysteria2 on UDP 443.
 
 Usage:
     python validate.py <profile.json> [angie.conf]
@@ -104,7 +104,7 @@ def check_tags(profile, inbounds, f, seen_global):
             f.error("TAG-NOT-UNIQUE", f"{profile}: tag {tag!r} is also used by profile "
                                       f"{seen_global[tag]!r}; tags are unique panel-wide")
         seen_global.setdefault(tag, profile)
-        if ib.get("protocol") == "vless" and not TAG_SCHEME.match(tag):
+        if ib.get("protocol") in ("vless", "hysteria") and not TAG_SCHEME.match(tag):
             f.note("TAG-SCHEME", f"{profile}: tag {tag!r} is outside the <CC>-<PROTOCOL>-… scheme "
                                  f"(fine, but never rename it by hand — see remnawave-2.8.md)")
 
@@ -198,6 +198,40 @@ def check_xhttp(profile, ib, f):
         f.note("XHTTP-NOSSE", f"{profile}/{tag}: noSSEHeader is set; the protocol author suggests it only "
                               f"for stream-one trouble — the default is fine behind a web server")
     return out
+
+
+def check_hysteria2(profile, ib, f):
+    """Xray v26.6.27 hysteria inbound (reference/hysteria2.md)."""
+    tag = ib.get("tag", "?")
+    ss = ib.get("streamSettings") or {}
+    hs = ss.get("hysteriaSettings") or {}
+
+    if (ib.get("settings") or {}).get("version") != 2 or hs.get("version") != 2:
+        f.error("HY2-VERSION", f"{profile}/{tag}: settings.version and hysteriaSettings.version must both "
+                               f"be 2 — Xray v26.6.27 refuses the config ('version != 2')")
+    if ss.get("network") != "hysteria":
+        f.error("HY2-NETWORK", f"{profile}/{tag}: network {ss.get('network')!r}, not 'hysteria' — the "
+                               f"inbound refuses to start ('not hysteria transport')")
+    if ib.get("port") != 443:
+        f.warn("HY2-PORT", f"{profile}/{tag}: listens on {ib.get('port')!r}; this architecture puts "
+                           f"Hysteria2 on UDP 443, next to REALITY on TCP 443")
+
+    if ss.get("security") != "tls":
+        f.error("HY2-TLS", f"{profile}/{tag}: security {ss.get('security') or 'none'!r}, not 'tls' — Xray "
+                           f"does not start a Hysteria2 listener without TLS, and the node loses every protocol")
+    else:
+        certs = (ss.get("tlsSettings") or {}).get("certificates") or []
+        if not certs or any(not c.get("certificateFile") or not c.get("keyFile") for c in certs):
+            f.error("HY2-CERT-INLINE", f"{profile}/{tag}: certificate not given as certificateFile/keyFile — "
+                                       f"inline PEM puts the private key in every config the panel pushes")
+
+    moved = sorted(k for k in ("congestion", "up", "down", "udphop") if k in hs)
+    if moved:
+        f.warn("HY2-MOVED-KEYS", f"{profile}/{tag}: hysteriaSettings has {', '.join(moved)}; Xray v26.6.27 "
+                                 f"only logs a warning for them — they belong in finalmask/quicParams")
+    if (hs.get("masquerade") or {}).get("type", "") in ("", "404"):
+        f.note("HY2-MASQUERADE", f"{profile}/{tag}: no masquerade (bare 404 to anything speaking HTTP/3); "
+                                 f"pointing it at the decoy keeps the node one site on TCP and UDP")
 
 
 # --------------------------------------------------------------------------
@@ -354,6 +388,8 @@ def validate(profiles, web_text=None):
                 realities.append(check_reality(name, ib, f))
             elif ss.get("network") == "xhttp":
                 xhttps.append(check_xhttp(name, ib, f))
+            elif ib.get("protocol") == "hysteria":
+                check_hysteria2(name, ib, f)
     if web_text is not None:
         check_web(web_text, realities, xhttps, f)
     return f

@@ -62,7 +62,7 @@ PROXY_BLOCK = """
 def good_config():
     """The example profile with its placeholders filled in."""
     cfg = copy.deepcopy(EXAMPLE)
-    reality, xhttp = cfg["inbounds"]
+    reality, xhttp, _ = cfg["inbounds"]
     reality["streamSettings"]["realitySettings"]["privateKey"] = "a" * 43
     reality["streamSettings"]["realitySettings"]["shortIds"] = ["0123456789abcdef"]
     xhttp["streamSettings"]["xhttpSettings"]["path"] = "/p4th/"
@@ -93,6 +93,7 @@ class GoodCases(unittest.TestCase):
         f = run(web=GOOD_WEB)
         self.assertEqual(f.ids("ERROR"), [])
         self.assertEqual(f.ids("WARN"), [])
+        self.assertEqual(f.ids("NOTE"), [])
 
     def test_proxy_pass_with_request_buffering_off_is_clean(self):
         f = run(web=with_location_body(PROXY_BLOCK))
@@ -138,6 +139,56 @@ class ProfileRules(unittest.TestCase):
         cfg = good_config()
         del cfg["inbounds"][1]["streamSettings"]["sockopt"]
         self.assertEqual(run(cfg).ids("WARN"), ["XHTTP-TRUSTED-XFF"])
+
+
+class Hysteria2Rules(unittest.TestCase):
+    def hy2(self, cfg):
+        return cfg["inbounds"][2]
+
+    def test_tls_missing(self):
+        cfg = good_config()
+        self.hy2(cfg)["streamSettings"]["security"] = "none"
+        self.assertEqual(run(cfg).ids("ERROR"), ["HY2-TLS"])
+
+    def test_inline_pem(self):
+        cfg = good_config()
+        self.hy2(cfg)["streamSettings"]["tlsSettings"]["certificates"] = [
+            {"certificate": ["-----BEGIN CERTIFICATE-----"], "key": ["-----BEGIN PRIVATE KEY-----"]}]
+        self.assertEqual(run(cfg).ids("ERROR"), ["HY2-CERT-INLINE"])
+
+    def test_no_certificate(self):
+        cfg = good_config()
+        del self.hy2(cfg)["streamSettings"]["tlsSettings"]["certificates"]
+        self.assertEqual(run(cfg).ids("ERROR"), ["HY2-CERT-INLINE"])
+
+    def test_version_not_2(self):
+        cfg = good_config()
+        del self.hy2(cfg)["streamSettings"]["hysteriaSettings"]["version"]
+        self.assertEqual(run(cfg).ids("ERROR"), ["HY2-VERSION"])
+
+    def test_wrong_network(self):
+        cfg = good_config()
+        self.hy2(cfg)["streamSettings"]["network"] = "tcp"
+        self.assertEqual(run(cfg).ids("ERROR"), ["HY2-NETWORK"])
+
+    def test_other_port_warns(self):
+        cfg = good_config()
+        self.hy2(cfg)["port"] = 8443
+        f = run(cfg)
+        self.assertEqual(f.ids("ERROR"), [])
+        self.assertEqual(f.ids("WARN"), ["HY2-PORT"])
+
+    def test_moved_keys_warn(self):
+        cfg = good_config()
+        self.hy2(cfg)["streamSettings"]["hysteriaSettings"]["congestion"] = "bbr"
+        self.assertEqual(run(cfg).ids("WARN"), ["HY2-MOVED-KEYS"])
+
+    def test_default_masquerade_is_a_note(self):
+        cfg = good_config()
+        del self.hy2(cfg)["streamSettings"]["hysteriaSettings"]["masquerade"]
+        f = run(cfg)
+        self.assertEqual(f.ids("ERROR") + f.ids("WARN"), [])
+        self.assertEqual(f.ids("NOTE"), ["HY2-MASQUERADE"])
 
 
 class WebRules(unittest.TestCase):

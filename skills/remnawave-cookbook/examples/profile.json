@@ -33,6 +33,27 @@
         "xhttpSettings": { "mode": "auto", "path": "/<SECRET_PATH>/" },
         "sockopt": { "trustedXForwardedFor": ["X-Real-IP"] }
       }
+    },
+    {
+      "tag": "XX-HYSTERIA2-QUIC-TLS",
+      "port": 443,
+      "protocol": "hysteria",
+      "settings": { "version": 2, "clients": [] },
+      "streamSettings": {
+        "network": "hysteria",
+        "security": "tls",
+        "tlsSettings": {
+          "alpn": ["h3"],
+          "certificates": [{
+            "certificateFile": "/etc/xray-tls/letsencrypt/certificate.pem",
+            "keyFile": "/etc/xray-tls/letsencrypt/private.key"
+          }]
+        },
+        "hysteriaSettings": {
+          "version": 2,
+          "masquerade": { "type": "proxy", "url": "https://node.example.com", "rewriteHost": true }
+        }
+      }
     }
   ],
   "outbounds": [

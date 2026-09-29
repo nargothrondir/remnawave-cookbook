@@ -44,6 +44,13 @@ unreadable. Each line is `LEVEL ID: message`.
 | `XHTTP-PATH-MISSING` | error | no path |
 | `XHTTP-TRUSTED-XFF` / `…-SHAPE` | warn | no trusted header / values look like addresses (in v26.6.27 they are header names) |
 | `XHTTP-NOSSE` | note | `noSSEHeader` set without a stream-one problem to solve |
+| `HY2-VERSION` | error | `settings.version` or `hysteriaSettings.version` is not 2 — Xray refuses the whole config |
+| `HY2-NETWORK` | error | a `hysteria` inbound on another transport — it does not start |
+| `HY2-TLS` | error | no TLS — Xray does not start the listener, and the node loses every protocol with it |
+| `HY2-CERT-INLINE` | error | certificate not given as `certificateFile` / `keyFile` — inline PEM travels in every config the panel pushes |
+| `HY2-PORT` | warn | not on 443 — this architecture pairs UDP 443 with REALITY's TCP 443 |
+| `HY2-MOVED-KEYS` | warn | `congestion` / `up` / `down` / `udphop` in `hysteriaSettings` — ignored with a warning; they live in `finalmask/quicParams` |
+| `HY2-MASQUERADE` | note | default masquerade: a bare 404 to anything speaking HTTP/3 |
 | `WEB-TEMPLATE` | error | the template was passed instead of the rendered file |
 | `WEB-NO-DECOY-LISTENER` | error | nothing listens on REALITY's `dest` socket |
 | `WEB-PROXY-PROTOCOL` | error | `xver` and the listener's `proxy_protocol` disagree — every handshake breaks |
@@ -58,17 +65,38 @@ unreadable. Each line is `LEVEL ID: message`.
 | `XHTTP-READ-TIMEOUT` | warn | read timeout at or below ~330 s (the default is 60 s; the XTLS example's 315 s cut live streams) |
 
 What it cannot see: whether an inbound is in a squad, active on a node,
-published by a host, or whether a node is switched on. That needs the live
-audit.
+published by a host, how that host is set, or whether a node is switched on.
+Nor whether a certificate path given as a file exists on the panel — if it
+does, the panel inlines the PEM itself (`reference/hysteria2.md`). That needs
+the live audit.
 
 ## The fleet audit
 
 A read-only playbook in the reference implementation, run from Semaphore as
-**Audit fleet**: every profile's tags and inbound shape, every scheme inbound's
-squad, node and host, every host's port / security layer / xmux, every node on
-and on its profile, and whether the node stack's `XHTTP_PATH` matches whether
-the node serves xHTTP. Profiles deliberately left on old tags are listed in the
-inventory and reported as warnings. It changes nothing (`changed=0`).
+**Audit fleet**. It reads the panel (profiles, squads, hosts, nodes) and the
+stack manager (each node's stack variables), changes nothing (`changed=0`),
+and fails the run on any error. Warnings do not fail it.
+
+It looks at every REALITY TCP, xHTTP and Hysteria2 inbound in every profile:
+
+| Area | Checked | Level |
+|---|---|---|
+| Profile | tag in the `<CC>-<PROTOCOL>-…` scheme | error; warning for profiles or nodes listed as legacy |
+| Profile, xHTTP | listens on the socket the web server passes to; has a `port`; `trustedXForwardedFor` holds `X-Real-IP` | error; missing port a warning |
+| Profile, Hysteria2 | `security: tls`; certificate as `certificateFile` / `keyFile` | error |
+| Bindings | the inbound is in a squad, active on a node, published by a host | error |
+| Hosts | port 443 | error |
+| Hosts, xHTTP | `securityLayer` TLS; an `xhttpExtraParams.xmux` block | error |
+| Hosts, Hysteria2 | ALPN contains `h3`; no `pinnedPeerCertSha256` | error |
+| Nodes | switched on; attached to a profile | error |
+| Nodes | connected to the panel right now | warning |
+| Stacks | a node serving xHTTP has `XHTTP_PATH` in its stack | error |
+| Stacks | a node not serving xHTTP has none; the node has a stack at all | warning |
+
+Where it overlaps with `validate.py` — the inbound's shape — the audit is
+stricter: it knows the one socket path the fleet uses, and a missing trusted
+header is an error there, a warning here. What each failure means and how to fix it: `diagnostics.md`, "Fleet audit
+findings".
 
 Source: [`playbooks/audit-fleet.yml`](https://github.com/nargothrondir/ansible-playbooks/blob/main/playbooks/audit-fleet.yml)
 in the reference implementation. To reproduce it elsewhere, the same checks

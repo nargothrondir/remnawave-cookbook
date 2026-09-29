@@ -7,8 +7,8 @@ description: >-
   PATCH it" — and when a node misbehaves after such a change. Runs the
   cookbook's offline validate.py on an exported profile and the rendered web
   config, then maps every finding ID to its meaning and fix. Triggers on:
-  config review, ревью конфига, validate.py, inbound / REALITY / xHTTP
-  settings, error_page, grpc_pass, trustedXForwardedFor, before a merge or a
+  config review, ревью конфига, validate.py, inbound / REALITY / xHTTP /
+  Hysteria2 settings, error_page, grpc_pass, trustedXForwardedFor, before a merge or a
   panel update.
 ---
 
@@ -16,7 +16,7 @@ description: >-
 
 `validate.py` is offline and standard-library only: it reads files, sends
 nothing anywhere, and checks the invariants this architecture depends on — in
-the profile (tags, REALITY, xHTTP inbound) and in the web server's config
+the profile (tags, REALITY, xHTTP and Hysteria2 inbounds) and in the web server's config
 (the decoy listener, `proxy_protocol`, `server_name`, the xHTTP location, error
 pages).
 
@@ -53,15 +53,18 @@ that most often block a change:
 | `XHTTP-PROXY-BUFFERING` | `proxy_pass` buffers the body; stream-up never passes | same → "`grpc_pass` or `proxy_pass`" |
 | `XHTTP-TRUSTED-HEADER`, `XHTTP-XFF-HEADER` | client addresses are lost, or a client can forge them | same |
 | `WEB-NAMED-ERROR-PAGE` | a broken URL gets 500 instead of 400 | `../remnawave-cookbook/reference/angie.md` → "Error pages" |
+| `HY2-TLS`, `HY2-VERSION`, `HY2-NETWORK` | Xray refuses the inbound — and with it every protocol on the node | `../remnawave-cookbook/reference/hysteria2.md` |
+| `HY2-CERT-INLINE` | the private key would travel in every config the panel pushes | same → "Where the certificate comes from" |
 
 Warnings (`XHTTP-ACCESS-LOG`, `XHTTP-READ-TIMEOUT`, `XHTTP-BODY-SIZE`, …) do not
-block, but each has a measured reason in `../remnawave-cookbook/reference/angie.md`.
+block, but each has a measured reason in `../remnawave-cookbook/reference/angie.md`
+(the `HY2-*` ones in `../remnawave-cookbook/reference/hysteria2.md`).
 
 ## 4. After it is live
 
 `validate.py` sees the files, not the node. Check the node itself with the
-`edge-check` skill, and bindings (squads, nodes, hosts) with the panel API or a
-fleet audit (`../remnawave-cookbook/audit.md`).
+`edge-check` skill, and bindings (squads, nodes, hosts) and the hosts' settings (ALPN, pins, xmux)
+with the panel API or a fleet audit (`../remnawave-cookbook/audit.md`).
 
 Report findings by ID and file, never by pasting the inputs: they carry keys,
 the xHTTP path and the node's name.
