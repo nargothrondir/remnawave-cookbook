@@ -234,7 +234,7 @@ def parse_web(text):
         names = []
         for n in re.findall(r"\bserver_name\s+([^;]+);", top):
             names += n.split()
-        servers.append({"listens": listens, "names": names, "locations": locations})
+        servers.append({"listens": listens, "names": names, "locations": locations, "top": top})
     return servers
 
 
@@ -249,6 +249,21 @@ def check_web(text, realities, xhttps, f):
                                 "(docker exec <angie> cat /etc/angie/http.d/default.conf)")
         return
     servers = parse_web(text)
+
+    # nginx empties the URI of a request it cannot parse, and refuses to enter
+    # a named location with an empty URI (ngx_http_named_location) — so an
+    # error_page for request-line and header errors that points to @name turns
+    # a 400 into a 500.
+    for s in servers:
+        for spec in re.findall(r"\berror_page\s+([^;]+);", s["top"]):
+            parts = spec.split()
+            target = parts[-1]
+            early = sorted({p for p in parts[:-1] if p.isdigit()} & {"400", "414", "494"})
+            if target.startswith("@") and early:
+                f.error("WEB-NAMED-ERROR-PAGE", f"error_page {' '.join(early)} -> {target}: a request "
+                                                f"whose URI nginx cannot parse has an empty URI, and a "
+                                                f"named location refuses it with 500; redirect to an "
+                                                f"internal URI instead")
 
     for r in realities:
         dest = r["dest"]

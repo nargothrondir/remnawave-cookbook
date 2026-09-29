@@ -49,6 +49,7 @@ unreadable. Each line is `LEVEL ID: message`.
 | `WEB-PROXY-PROTOCOL` | error | `xver` and the listener's `proxy_protocol` disagree — every handshake breaks |
 | `WEB-SERVER-NAME` | error | no decoy server block for REALITY's `serverNames` |
 | `WEB-NO-XHTTP-LOCATION` | error | no location for the inbound's path (normalised to `/…/`) |
+| `WEB-NAMED-ERROR-PAGE` | error | `error_page` for 400/414/494 points to a named location — a broken URL gets 500 (nginx refuses a named location with an empty URI) |
 | `XHTTP-NO-UPSTREAM` / `XHTTP-SOCKET-MISMATCH` | error | the location does not reach the inbound's socket |
 | `XHTTP-PROXY-BUFFERING` | error | `proxy_pass` without `proxy_request_buffering off` |
 | `XHTTP-TRUSTED-HEADER` / `XHTTP-XFF-HEADER` | error | the trusted marker or `X-Forwarded-For` is not set — addresses lost, or forgeable |

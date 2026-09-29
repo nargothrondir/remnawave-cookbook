@@ -18,7 +18,11 @@ actually *does*. Read both, in that order.
 | Xray-core issues | `XTLS/Xray-core` | — | #4446, #4716, #4894 (`grpc_pass` rough edges); #6444 (silently dead pooled connections); discussion #5822 (community advice to use `proxy_pass`) |
 | Community example | `legiz-ru/my-remnawave` | `main` | README, xHTTP behind nginx — `grpc_pass` → `proxy_pass` on 2026-04-15 |
 | Mihomo | `MetaCubeX/mihomo` | `v1.19.31` | `transport/xhttp/{config,client,reuse}.go`; `adapter/outbound/vless.go` |
-| nginx | `nginx/nginx` | `master` | `src/http/modules/ngx_http_grpc_module.c` (request body is never buffered) |
+| nginx | `nginx/nginx` | `master` | `src/http/modules/ngx_http_grpc_module.c` (request body is never buffered); `src/http/ngx_http_special_response.c` (stock error pages, when `error_page` applies); `src/http/ngx_http_core_module.c` (`ngx_http_named_location`: empty URI → 500) |
+| Mozilla SSL guidelines | Mozilla's SSL Configuration Generator, its `guidelines/latest.json` | `6.0` | "intermediate": protocols, suites, groups (`X25519MLKEM768` first), server order off |
+| Let's Encrypt | `letsencrypt.org` | — | "OCSP Service Has Reached End of Life" (2025-08-06) |
+| Angie docs | `angie.software` | — | `server_tokens` (custom value: PRO only); Docker images (`ANGIE_LOAD_MODULES`) |
+| Xray docs | `XTLS/Xray-docs-next` | `main` | `docs/en/config/transports/reality.md` (`target` with `X25519MLKEM768`; `limitFallback*` purpose) |
 | Angie | `webserver-llc/angie` | `Angie-1.12.1` | `CHANGES` (HTTP/2 to backends arrived in 1.12.0) |
 
 ## Reading a file at a tag
