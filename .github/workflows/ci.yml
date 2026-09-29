@@ -95,3 +95,13 @@ jobs:
 
       - name: edge-check prints its usage
         run: bash bin/edge-check --help
+
+      # The runner has PowerShell 7; parse errors fail the job without
+      # running the probe (it needs a live Mihomo controller).
+      - name: mihomo-probe.ps1 parses
+        shell: pwsh
+        run: |
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile("bin/mihomo-probe.ps1", [ref]$null, [ref]$errors)
+          if ($errors) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }
+          Write-Output "mihomo-probe.ps1: no parse errors"
