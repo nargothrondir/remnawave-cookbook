@@ -75,6 +75,30 @@ path, several streams of one connection at once.**
 - Fix: `access_log off` in the xHTTP location. It also stops recording the
   secret path and a timeline of user traffic.
 
+**A broken URL (`GET /%`) gets 500 instead of 400.**
+- Cause: an `error_page` for 400/414/494 points to a named location (`@…`).
+  nginx empties the URI of a request it cannot parse and refuses a named
+  location with an empty URI (`empty URI in redirect to named location`).
+- Check: `validate.py` → `WEB-NAMED-ERROR-PAGE`; the error log line above.
+- Fix: `error_page <code> /__error_page/<code>;` with an `internal` exact-match
+  location (`reference/angie.md`, "Error pages").
+
+**The header says `Server: nginx`, the error page body says `Angie`.**
+- Cause: the code is not in the stock-error list, or the header was changed
+  without the pages.
+- Check: `curl -sk --http1.1 --resolve "<name>:443:127.0.0.1" "https://<name>/%" | tail -3`,
+  and the other probes in `reference/angie.md`.
+- Fix: add the code to the list.
+
+**`angie -t` in CI fails on `unknown directive "more_set_headers"`.**
+- Cause: CI renders without `ANGIE_LOAD_MODULES`, or with an image that lacks
+  the module.
+- Fix: take the image and `ANGIE_LOAD_MODULES` from the stack's compose file.
+
+**The template does not render: `missing value for command`.**
+- Cause: an empty pair of gomplate delimiters — often inside a `#` comment.
+- Fix: describe the syntax in words in comments.
+
 **`grep` on the node's container log prints `binary file matches`.**
 - The log contains colour escape codes; use `grep -a`.
 

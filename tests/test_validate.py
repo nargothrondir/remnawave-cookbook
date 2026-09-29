@@ -183,6 +183,19 @@ class WebRules(unittest.TestCase):
         web = GOOD_WEB.replace("grpc_read_timeout 1h;", "grpc_read_timeout 315;")
         self.assertEqual(run(web=web).ids("WARN"), ["XHTTP-READ-TIMEOUT"])
 
+    def test_named_location_error_page_for_request_line_errors(self):
+        web = GOOD_WEB.replace("root /var/www/html;", "root /var/www/html;\n    error_page 400 414 @stock;", 1)
+        self.assertEqual(run(web=web).ids("ERROR"), ["WEB-NAMED-ERROR-PAGE"])
+
+    def test_internal_uri_error_page_is_clean(self):
+        web = GOOD_WEB.replace("root /var/www/html;",
+                               "root /var/www/html;\n    error_page 400 414 /__error_page/400;", 1)
+        self.assertEqual(run(web=web).ids("ERROR"), [])
+
+    def test_named_location_for_late_errors_is_not_flagged(self):
+        web = GOOD_WEB.replace("root /var/www/html;", "root /var/www/html;\n    error_page 502 @down;", 1)
+        self.assertEqual(run(web=web).ids("ERROR"), [])
+
     def test_default_timeout_warns(self):
         web = GOOD_WEB.replace("        grpc_read_timeout 1h;\n", "")
         self.assertEqual(run(web=web).ids("WARN"), ["XHTTP-READ-TIMEOUT"])

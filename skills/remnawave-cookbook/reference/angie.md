@@ -26,29 +26,185 @@ variable) recreates the container and re-renders.
 invalid values rather than silently falling back. ✅ (CI render of a bogus
 value fails with the message)
 
+**gomplate parses its delimiters inside `#` comments too.** A comment such as
+"template syntax is" followed by an empty pair of double braces is an empty
+action and fails the render with `missing value for command`. ✅ (CI render)
+Describe the syntax in words in comments.
+
+Read every environment variable once, at the top of the file, into template
+variables (`$node_name := getenv "NODE_NAME"`), check the required ones there
+with `test.Fail`, and use the variables below. The inputs of the file are then
+one short block instead of calls scattered through it; a variable declared at
+the top is visible inside every later `if` and `range`.
+
+## TLS — what every TCP client of the node is seen doing
+
+With REALITY self-steal the web server is REALITY's target, and its TLS is
+more than the decoy site's encryption:
+
+- REALITY uses its target's handshake as camouflage. If the target supports
+  `X25519MLKEM768`, REALITY clients that offer it use it too ✅ (Xray docs,
+  REALITY `target`). Mihomo strips that group from its REALITY ClientHello
+  unless `support-x25519mlkem768` is set ✅ (`component/tls/reality.go`,
+  v1.19.31), so for Mihomo users REALITY stays on X25519 either way.
+- xHTTP clients, browsers and probes end their TLS here.
+
+So the aim is to look like an ordinary, current web server, and the profile is
+the one most such servers are configured from — Mozilla "intermediate",
+guidelines 6.0 ✅:
+
+```nginx
+ssl_protocols              TLSv1.2 TLSv1.3;
+ssl_ecdh_curve             X25519MLKEM768:X25519:prime256v1:secp384r1;
+ssl_ciphers                ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+ssl_prefer_server_ciphers  off;
+ssl_session_timeout        1d;
+ssl_session_cache          shared:MozSSL:10m;
+ssl_session_tickets        off;
+```
+
+- `X25519MLKEM768` needs OpenSSL 3.5 or newer; `angie -V` names the version
+  the image was built and runs with. The Angie 1.12 images ship 3.5.x 🔶.
+- Relative to the older 5.x profile: no `DHE-RSA-*` suites (they never apply
+  without `ssl_dhparam` anyway) and `ssl_prefer_server_ciphers off`.
+- No OCSP stapling: Let's Encrypt shut its OCSP service down on 2025-08-06 ✅
+  and publishes revocation through CRLs only.
+- Check it through REALITY, the way a visitor arrives:
+  `echo | openssl s_client -connect 127.0.0.1:443 -servername <node name> 2>/dev/null | grep -E "Negotiated TLS1.3 group|Protocol"`
+  should print `X25519MLKEM768` and `TLSv1.3` 🔶.
+
+## Server identity — `Server: nginx` on Angie
+
+`server_tokens off` removes the version from the `Server` header and from
+error pages, but the open-source Angie cannot rename itself: a custom or empty
+value needs Angie PRO ✅ (Angie docs, `server_tokens`). Angie is rare outside
+Russia while nginx is the most common server there is, so "Server: Angie" on a
+foreign VPS is a small, free signal 💡.
+
+The headers-more module does it:
+
+```nginx
+more_set_headers  "Server: nginx";
+```
+
+- The `-templated` images ship the module; the image's own main-config
+  template loads it when the `ANGIE_LOAD_MODULES` environment variable names
+  it: `ANGIE_LOAD_MODULES=headers-more` ✅ (Angie docs, Docker). `load_module`
+  cannot go in a file included inside `http {}`.
+- The template that decides this is `/etc/angie/templates/angie.conf` in the
+  image — not the `ANGIE_CONFIG_TEMPLATE` path its environment still names
+  🔶 (observed in `1.12.2-templated`). The module key is the word after
+  `has $modules` there.
+- Validate the config in CI with the same image **and** the same
+  `ANGIE_LOAD_MODULES`, or `angie -t` fails on the unknown directive — and a
+  floating image tag validates a different Angie than production.
+- The header alone is half of it: Angie's own error pages end in
+  `<center>Angie</center>` — see "Error pages" below.
+
 ## The decoy server block
 
 ```nginx
 server {
-    server_name node.example.com;                 # = REALITY serverNames
-    listen unix:/dev/shm/nginx.sock ssl proxy_protocol;
-    http2 on;
+    listen       unix:/dev/shm/nginx.sock ssl proxy_protocol;
+    server_name  node.example.com;                      # = REALITY serverNames
+    http2        on;
+
+    set_real_ip_from  unix:;
+    real_ip_header    proxy_protocol;
+
     # certificate for node.example.com (ACME, DNS-01 — no port 80 needed)
-    root /var/www/html;
+
+    add_header  Strict-Transport-Security  "max-age=63072000"  always;
+    add_header  Alt-Svc  'h3=":443"; ma=86400'  always;  # only if UDP 443 answers HTTP/3
+    add_header  X-Robots-Tag  "noindex, nofollow, noarchive, nosnippet, noimageindex"  always;
+
+    root   /var/www/html;
+    index  index.html;
+
+    error_page  404  /index.html;
+
+    location / {
+        try_files   $uri $uri/ =404;
+        gzip        on;
+        gzip_vary   on;
+        gzip_types  text/css application/javascript application/json image/svg+xml;
+    }
 }
-server {                                           # any other SNI: refuse
-    listen unix:/dev/shm/nginx.sock ssl proxy_protocol default_server;
-    server_name _;
-    ssl_reject_handshake on;
+server {                                                # any other SNI: refuse
+    listen       unix:/dev/shm/nginx.sock ssl proxy_protocol default_server;
+    server_name  _;
+    ssl_reject_handshake  on;
+    return                444;
 }
 ```
 
-- `proxy_protocol` on the listener is required: REALITY with `xver: 1` sends a
-  PROXY header first, and the client address is then `$proxy_protocol_addr`.
-- `http2 on` — the xHTTP client speaks HTTP/2 over this TLS.
-- The certificate must be for the exact name in REALITY's `serverNames` and the
-  subscription host's SNI; a mismatch makes the node unusable while every
-  health check stays green.
+| Line | Why |
+|---|---|
+| `proxy_protocol` on the listener | REALITY with `xver: 1` sends a PROXY header first; without it every handshake breaks |
+| `http2 on` | the xHTTP client speaks HTTP/2 over this TLS |
+| `set_real_ip_from unix:` + `real_ip_header proxy_protocol` | every connection arrives over the unix socket, so the access log records `unix:` for every request. With these, `$remote_addr` is the client address from the PROXY header and the decoy's log shows who scans and probes the node ✅ (`unix:` is a documented value of the realip module). Users do not appear: REALITY traffic never reaches the web server, and the xHTTP location does not log |
+| `Strict-Transport-Security` | what an HTTPS-only site sends (Mozilla: two years). A node behind REALITY has no port 80 to break |
+| `Alt-Svc: h3` | only when UDP 443 really answers HTTP/3 — e.g. Hysteria2 whose masquerade serves this same site (`hysteria2.md`). The TCP and UDP sides then tell one story, and browsers reach the decoy over h3. A browser whose QUIC attempt fails falls back to TCP |
+| `X-Robots-Tag` | keeps the decoy out of search engines |
+| `error_page 404 /index.html` | an unknown path gets the site's own page, still status 404 — what many small sites do, instead of the web server's stock page. Works only if the site's assets use absolute paths (check the templates). Set on the server: an `error_page` in a location replaces every one inherited |
+| `gzip` inside `location /` only | ordinary sites compress text. Never on the xHTTP location: compression buffers the stream |
+| catch-all: `ssl_reject_handshake on` | a handshake for any other SNI is refused before a certificate is shown |
+| catch-all: `return 444` | a request whose `Host` names no server lands here even after a handshake on the node's name; close without an answer. Checked: `curl -H "Host: example.com"` over the node's SNI gets no response 🔶 |
+
+The certificate must be for the exact name in REALITY's `serverNames` and the
+subscription host's SNI; a mismatch makes the node unusable while every health
+check stays green.
+
+## Error pages — nginx's own, never Angie's
+
+Once the header says nginx, the body must too. Every error page the web server
+writes itself — not the site's — ends in `<hr><center>Angie</center>` on
+Angie. Anyone can reach them with a malformed request 🔶 (all checked on a
+live node):
+
+| Probe | Code |
+|---|---|
+| a broken URL (`GET /%`) | 400 |
+| an oversized request line | 414 |
+| an oversized header | 494 → answers 400 |
+| `TRACE` | 405 |
+| an unknown `Transfer-Encoding` | 501 |
+| a `Range` past the end of a file | 416 |
+| a failed `If-Match` | 412 |
+| an unsupported HTTP version in the request line | 505 |
+
+Answer each with nginx's stock page, byte for byte — same status line, CRLF
+line ends, `<hr><center>nginx</center>`, `text/html`, no `ETag` or
+`Last-Modified`. With gomplate, one `dict` and two `range`s keep it short:
+
+```nginx
+{{- $stock_errors := dict "400" "400 Bad Request" "403" "403 Forbidden" "405" "405 Not Allowed" "412" "412 Precondition Failed" "413" "413 Request Entity Too Large" "414" "414 Request-URI Too Large" "416" "416 Requested Range Not Satisfiable" "494" "400 Request Header Or Cookie Too Large" "500" "500 Internal Server Error" "501" "501 Not Implemented" "502" "502 Bad Gateway" "503" "503 Service Temporarily Unavailable" "504" "504 Gateway Time-out" "505" "505 HTTP Version Not Supported" }}
+
+    # in the decoy server block:
+{{- range $code, $status := $stock_errors }}
+    error_page  {{ $code }}  /__error_page/{{ $code }};
+{{- end }}
+{{- range $code, $status := $stock_errors }}
+    location = /__error_page/{{ $code }} { internal; default_type text/html; return {{ strings.Trunc 3 $status }} "<html>\r\n<head><title>{{ $status }}</title></head>\r\n<body>\r\n<center><h1>{{ $status }}</h1></center>\r\n<hr><center>nginx</center>\r\n</body>\r\n</html>\r\n"; }
+{{- end }}
+```
+
+- The titles are nginx's (`src/http/ngx_http_special_response.c`) ✅. `494` is
+  nginx's internal code for oversized headers; it answers `400` with its own
+  title.
+- Each location is a literal `return <code> "<body>"`, so the status never
+  depends on how the redirect is resolved.
+- ⚠️ **Redirect to an internal URI, never to a named location (`@…`).** For a
+  request whose URI it cannot parse, nginx empties `r->uri`, and
+  `ngx_http_named_location` refuses to enter a named location with an empty
+  URI — it logs `empty URI in redirect to named location` and finalizes with
+  **500** ✅ (`src/http/ngx_http_core_module.c`). With `@…` a broken URL went
+  from the stock 400 to a 500 🔶 (observed); `TRACE`, whose URI is valid,
+  worked — which is why the bug hides. An internal redirect to a real URI sets
+  the URI first, so request-line errors, header errors and HTTP/2 are all
+  covered. `validate.py` flags `WEB-NAMED-ERROR-PAGE`.
+- Check the three stages on the node: `GET /%` over HTTP/1.1 (expect `400`), an
+  oversized URL (expect the nginx tail), and `GET /%` over HTTP/2.
 
 ## The xHTTP location
 
