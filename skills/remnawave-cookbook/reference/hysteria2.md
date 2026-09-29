@@ -1,8 +1,7 @@
 # Hysteria2 — the third protocol, next to REALITY TCP and xHTTP
 
-Status in the reference implementation: **running on one node** (since
-2026-09-26), measured with a Mihomo client; the rest of the fleet follows one
-node at a time. Evidence marks: ✅ verified at the tag · 🔶 partly / observed in
+Status in the reference implementation: **running on every node** (first node
+2026-09-26, then one node at a time), measured with a Mihomo client. Evidence marks: ✅ verified at the tag · 🔶 partly / observed in
 operation · ❔ not verified · 💡 design consideration.
 
 ## Support across the stack
@@ -118,6 +117,7 @@ runs, on the node itself, a read-only
 `docker exec <node container> sh -c 'test -s <dir>/certificate.pem && test -s <dir>/private.key'`
 and stops before touching the panel if it fails. The first run in production
 was stopped by exactly this — the node's stack predated the mount.
+`validate.py` checks the rest of the inbound offline (`HY2-*` in `audit.md`).
 
 Rolling back one node: take the Hysteria2 inbound off the node's active
 inbounds in the panel; Xray restarts without it.

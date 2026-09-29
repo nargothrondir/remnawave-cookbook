@@ -5,6 +5,21 @@ version in `.claude-plugin/plugin.json` changes, so every change to `skills/`,
 `agents/` or `bin/` comes with a new version and a section here (CI checks
 both). Patch: text and fixes; minor: a new skill, agent or script.
 
+## 0.2.1 — 2026-09-29
+
+The cookbook catches up with the fleet audit it documents.
+
+- `validate.py` checks the Hysteria2 inbound: `HY2-VERSION`, `HY2-NETWORK`,
+  `HY2-TLS`, `HY2-CERT-INLINE` (errors), `HY2-PORT`, `HY2-MOVED-KEYS`
+  (warnings), `HY2-MASQUERADE` (note). The example profile carries the
+  inbound that runs.
+- `audit.md`: every check of the fleet audit, by area and level, and what the
+  offline validator cannot see.
+- `diagnostics.md`: "Fleet audit findings" — each audit message to its cause
+  and fix; Hysteria2 taking a node down, and `skip-cert-verify` in its Mihomo
+  entry.
+- Hysteria2 runs on the whole fleet (`hysteria2.md`, `growth.md`).
+
 ## 0.2.0 — 2026-09-29
 
 The cookbook becomes a toolset.

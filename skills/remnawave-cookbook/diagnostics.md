@@ -1,7 +1,8 @@
 # Diagnostics — symptom → cause → check → fix
 
 Every entry comes from a real incident on the reference fleet, with the
-identifying details removed.
+identifying details removed, unless an evidence mark says otherwise. The fleet
+audit's findings are mapped at the end.
 
 ## Panel and automation
 
@@ -99,6 +100,17 @@ path, several streams of one connection at once.**
 - Cause: an empty pair of gomplate delimiters — often inside a `#` comment.
 - Fix: describe the syntax in words in comments.
 
+**Hysteria2 was added and every protocol on the node went down.**
+- 🔶 Stopped before it happened in the reference implementation; the mechanism
+  is in `reference/hysteria2.md`. Xray runs all of a node's inbounds in one
+  process, and a TLS inbound whose certificate it cannot read keeps that
+  process from starting.
+- Check: `docker exec <node container> sh -c 'test -s <dir>/certificate.pem && test -s <dir>/private.key'`
+  for the paths in the inbound; `validate.py` → `HY2-TLS`, `HY2-VERSION`,
+  `HY2-NETWORK` for the other ways the config is refused.
+- Fix: take the inbound off the node's active inbounds (Xray restarts without
+  it), mount the certificate, then add it back.
+
 **`grep` on the node's container log prints `binary file matches`.**
 - The log contains colour escape codes; use `grep -a`.
 
@@ -132,6 +144,11 @@ entry works.**
 - Cause: no `reuse-settings` in the Mihomo entry (the host's
   `xhttpExtraParams.xmux` missing) — a new connection per proxied connection.
 
+**The Mihomo entry for Hysteria2 has `skip-cert-verify: true`.**
+- ✅ Cause: the host has `pinnedPeerCertSha256`; panel 2.8.0 turns it into
+  `skip-cert-verify` and does not pass the pin (`reference/hysteria2.md`).
+- Fix: clear the pin on the host; use a certificate that verifies normally.
+
 ## Before blaming the protocol
 
 - Did the entry come from a fresh subscription? Old entries keep old tags,
@@ -139,3 +156,31 @@ entry works.**
 - Is the other protocol on the same node working? If REALITY TCP works and xHTTP
   does not, the problem is on the xHTTP path (web server, socket, activation),
   not the node's reachability.
+
+## Fleet audit findings
+
+What the fleet audit (`audit.md`) reports, by the words of its message. `<where>`
+is `profile / tag`, `… / host "<remark>"` or `node <name>`.
+
+| Message says | Cause | Fix |
+|---|---|---|
+| `tag outside the <CC>-… scheme` | a hand-made or old inbound | never rename by hand: migrate with a snapshot of its bindings (`reference/remnawave-2.8.md`); an old profile kept on purpose goes on the legacy list and becomes a warning |
+| `in no squad — users do not see it` | the inbound was added, or re-created by a rename, and no squad got it | add it to the squads that carry the node's other inbounds |
+| `active on no node — nothing serves it` | the profile grew but no node's active inbounds did — the panel does not extend them | add it to the node's `activeInbounds` (current + missing); see "no node" above |
+| `published by no host — absent from subscriptions` | no host, or the host points at a deleted inbound uuid after a rename | create the host, or re-bind it to the current uuid |
+| `listens on …, not <socket> (the web server passes there)` | the xHTTP inbound's `listen` differs from the web server's `grpc_pass` target | make them one path; `validate.py` with the rendered config → `XHTTP-SOCKET-MISMATCH` |
+| `no port — the panel host form has nothing to fill its required port from` (warning) | a socket inbound without `port` | `"port": 443`; Xray ignores it for a socket |
+| `does not trust X-Real-IP — client addresses are lost` | `sockopt.trustedXForwardedFor` missing or without the marker | `["X-Real-IP"]`, and the web server sets that header (`reference/angie.md`) |
+| `security …, not tls` | a Hysteria2 inbound without TLS | `security: tls` with the node's certificate; `validate.py` → `HY2-TLS` |
+| `certificate not given as certificateFile/keyFile` | inline PEM, or no certificate | file paths on the node that do not exist on the panel (`reference/hysteria2.md`, "Where the certificate comes from") |
+| `port …, not 443` | the host publishes another port | 443 — on TCP for REALITY and xHTTP, UDP for Hysteria2 |
+| `securityLayer … — the subscription would offer xHTTP without TLS` | an xHTTP host not set to TLS | `securityLayer: TLS`; the web server terminates it |
+| `no xhttpExtraParams.xmux` | the host lacks the xmux block | add it; without it Mihomo opens a connection per proxied connection (see the client section) |
+| `ALPN … — the Hysteria2 listener offers h3 only` | the host's ALPN lacks `h3` | ALPN `h3` on the Hysteria2 host |
+| `pinnedPeerCertSha256 set` | a pin on a Hysteria2 host | clear it (the client section above) |
+| `switched off` | the panel switched the node off, usually after it was left with no active inbound | restore its inbounds, then enable it (the first entry of this page) |
+| `attached to no profile` | the same event detached it | re-attach it to its profile with its inbounds |
+| `not connected to the panel right now` (warning) | the node is down, restarting, or unreachable from the panel | check the node container; repeat the audit |
+| `no … stack environment found — stack not checked` (warning) | the node has no stack in the stack manager under the expected name | nothing to fix in the panel; check the stack manager |
+| `serves xHTTP but its stack has no XHTTP_PATH` | the web server's template renders the xHTTP location from that variable; without it the path gets the decoy | set `XHTTP_PATH` in the node's stack and restart the web server container |
+| `stack has XHTTP_PATH but the node serves no xHTTP inbound` (warning) | the path is live on the web server with nothing behind it | remove the variable, or activate the inbound on the node |
