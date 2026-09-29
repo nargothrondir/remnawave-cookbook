@@ -98,6 +98,18 @@ Without the plugin system, copy `skills/remnawave-cookbook/` into
 `~/.claude/skills/` or `<project>/.claude/skills/` — the reference works alone;
 the procedures expect `bin/` next to them.
 
+## Updates
+
+Installed copies update only when the plugin's `version` changes. Each
+release bumps it and adds a section to [CHANGELOG.md](CHANGELOG.md); CI refuses
+a pull request that changes `skills/`, `agents/` or `bin/` without both.
+
+To receive releases: turn on auto-update once (`/plugin` → Marketplaces →
+`remnawave-cookbook` → Enable auto-update), or update by hand with
+`/plugin marketplace update remnawave-cookbook` in a session or
+`claude plugin update remnawave-cookbook@remnawave-cookbook` in a shell. A new
+version loads at the next session start or on `/reload-plugins`.
+
 ## Other assistants
 
 - **OpenAI Codex** and other tools that read `AGENTS.md`: clone the repository

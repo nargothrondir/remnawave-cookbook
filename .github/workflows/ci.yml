@@ -111,3 +111,19 @@ jobs:
           [void][System.Management.Automation.Language.Parser]::ParseFile("bin/mihomo-probe.ps1", [ref]$null, [ref]$errors)
           if ($errors) { $errors | ForEach-Object { Write-Error $_ }; exit 1 }
           Write-Output "mihomo-probe.ps1: no parse errors"
+
+  release:
+    name: version bump
+    runs-on: ubuntu-latest
+    # Pull requests only: that is where a change reaches main, and a branch's
+    # second push would otherwise be compared with its own bumped first push.
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Installed copies update only when plugin.json's version changes.
+      - name: Shipped changes come with a new version and a changelog entry
+        run: bash tools/check-version-bump.sh "origin/${{ github.base_ref }}"

@@ -85,6 +85,19 @@ marketplace и включите плагин в `.claude/settings.json` этог
 `~/.claude/skills/` или `<проект>/.claude/skills/` — справочник работает сам
 по себе; процедурам нужен `bin/` рядом.
 
+## Обновления
+
+Установленная копия обновляется, только когда меняется `version` плагина.
+Каждый релиз её поднимает и добавляет раздел в [CHANGELOG.md](CHANGELOG.md);
+CI не пропускает PR, который меняет `skills/`, `agents/` или `bin/` без того и
+другого.
+
+Чтобы получать релизы: один раз включите автообновление (`/plugin` →
+Marketplaces → `remnawave-cookbook` → Enable auto-update) или обновляйте
+вручную — `/plugin marketplace update remnawave-cookbook` в сессии или
+`claude plugin update remnawave-cookbook@remnawave-cookbook` в терминале. Новая
+версия подключается при следующем старте сессии или по `/reload-plugins`.
+
 ## Другие ассистенты
 
 - **OpenAI Codex** и другие инструменты, читающие `AGENTS.md`: склонируйте репозиторий в свой проект или рядом с ним — `AGENTS.md` ведёт к тому же содержимому.
