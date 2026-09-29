@@ -21,6 +21,11 @@ base=${1:?usage: check-version-bump.sh <base ref>}
 # an install hint, so take the first one that actually runs.
 if python3 -c 'pass' 2>/dev/null; then py=python3; else py=python; fi
 
+# Git Bash on Windows rewrites an argument like `origin/main:.claude-plugin/plugin.json`
+# as a Windows path before git sees it (`origin\main;.claude-plugin\plugin.json`).
+# No effect elsewhere.
+export MSYS_NO_PATHCONV=1
+
 version_at() { # <ref> -> the plugin version at that ref
   git show "$1:.claude-plugin/plugin.json" |
     "$py" -c 'import json, sys; print(json.load(sys.stdin)["version"])'
