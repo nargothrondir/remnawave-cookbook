@@ -1,0 +1,36 @@
+---
+name: Release
+
+# A new plugin version on main gets its tag (<plugin>--v<version>) and a
+# GitHub Release with its CHANGELOG section. The version check in ci.yml
+# guarantees both exist before the change reaches main.
+on:
+  push:
+    branches: [main]
+    paths: [.claude-plugin/plugin.json]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: tag and release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # Idempotent: a version that already has its tag is skipped.
+      - name: Tag the version and publish its release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tools/release.sh "$GITHUB_SHA"

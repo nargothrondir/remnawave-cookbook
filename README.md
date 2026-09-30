@@ -110,6 +110,12 @@ To receive releases: turn on auto-update once (`/plugin` → Marketplaces →
 `claude plugin update remnawave-cookbook@remnawave-cookbook` in a shell. A new
 version loads at the next session start or on `/reload-plugins`.
 
+Every version is also a git tag, `remnawave-cookbook--v<version>`, with a
+GitHub Release carrying its changelog section (published by CI when a new
+version reaches `main`). Claude Code does not need them; they are for pinning:
+`claude plugin marketplace add nargothrondir/remnawave-cookbook#remnawave-cookbook--v0.2.2`
+stays on that version.
+
 ## Other assistants
 
 - **OpenAI Codex** and other tools that read `AGENTS.md`: clone the repository

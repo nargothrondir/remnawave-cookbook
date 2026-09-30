@@ -98,6 +98,12 @@ Marketplaces → `remnawave-cookbook` → Enable auto-update) или обнов�
 `claude plugin update remnawave-cookbook@remnawave-cookbook` в терминале. Новая
 версия подключается при следующем старте сессии или по `/reload-plugins`.
 
+Каждая версия — ещё и git-тег `remnawave-cookbook--v<версия>` с GitHub Release,
+в котором её раздел changelog (публикует CI, когда новая версия попадает в
+`main`). Claude Code они не нужны; они для закрепления версии:
+`claude plugin marketplace add nargothrondir/remnawave-cookbook#remnawave-cookbook--v0.2.2`
+остаётся на этой версии.
+
 ## Другие ассистенты
 
 - **OpenAI Codex** и другие инструменты, читающие `AGENTS.md`: склонируйте репозиторий в свой проект или рядом с ним — `AGENTS.md` ведёт к тому же содержимому.
