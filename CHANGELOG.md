@@ -5,6 +5,18 @@ version in `.claude-plugin/plugin.json` changes, so every change to `skills/`,
 `agents/` or `bin/` comes with a new version and a section here (CI checks
 both). Patch: text and fixes; minor: a new skill, agent or script.
 
+## 0.2.2 — 2026-09-30
+
+Snippets, read at the pinned panel version.
+
+- `remnawave-2.8.md`, "Snippets": what they are, where the panel expands them,
+  the silent drop of a missing name, no restart on change, the computed-config
+  endpoint to see the result; what 3.x adds (`sync`, root-level merge).
+- `validate.py --snippets <GET /api/snippets export>`: `SNIPPET-MISSING`
+  (error), `SNIPPET-ROOT`, `SNIPPET-BALANCER` (warnings), `SNIPPET-UNCHECKED`
+  (note).
+- `growth.md`: snippets as an option, not used in the reference fleet.
+
 ## 0.2.1 — 2026-09-29
 
 The cookbook catches up with the fleet audit it documents.

@@ -20,6 +20,7 @@ Versions: Xray v26.6.27 · Remnawave panel 2.8.0 · Mihomo v1.19.31.
 | WebSocket (+ CDN) | 🔶 standard transport | ✅ `ws` allowed; `buildWsOpts` | 🔶 standard | not planned | older fingerprint; xHTTP covers the same CDN case better |
 | gRPC (+ CDN) | 🔶 standard transport | ✅ `grpc` allowed; `buildGrpcOpts` | 🔶 standard | not planned | superseded by xHTTP stream-up with its gRPC header disguise (#4113) |
 | HTTPUpgrade | 🔶 standard transport | ✅ `httpupgrade` allowed; rendered as ws with HTTP upgrade | 🔶 | not planned | niche; CDN-only use |
+| Snippets (shared rules / outbounds) | — | ✅ in 2.8.0; `sync` and root-level merge in 3.x | — | not used | a missing name drops its element silently; no sync in 2.8.0 (`remnawave-2.8.md`, "Snippets") |
 
 ## Rules that come with a CDN (from #4113) ✅
 

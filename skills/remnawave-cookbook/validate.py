@@ -6,7 +6,7 @@ REALITY on :443 with a self-steal decoy on a unix socket, VLESS over xHTTP
 on a unix socket behind the same web server, and Hysteria2 on UDP 443.
 
 Usage:
-    python validate.py <profile.json> [angie.conf]
+    python validate.py <profile.json> [angie.conf] [--snippets snippets.json]
 
 <profile.json> may be:
   - a bare Xray config (has "inbounds"),
@@ -16,6 +16,9 @@ Usage:
     panel requires.
 [angie.conf] must be the RENDERED file (inside the container:
 /etc/angie/http.d/default.conf), not the gomplate template.
+[snippets.json] is the panel's snippet list (GET /api/snippets); with it,
+every {"snippet": "<name>"} reference is checked to exist — the panel drops a
+reference to a missing name silently.
 
 Every finding has an ID (e.g. XHTTP-SOCKET-MISMATCH), so tests and people can
 refer to it. Exit codes: 0 no errors (warnings allowed) · 1 errors · 2 input
@@ -69,6 +72,17 @@ def normalise_path(p):
     if not p.endswith("/"):
         p = p + "/"
     return p
+
+
+def load_snippets(doc):
+    """GET /api/snippets (or its response, or a bare list) -> set of names."""
+    if isinstance(doc, dict) and "response" in doc:
+        doc = doc["response"]
+    if isinstance(doc, dict) and "snippets" in doc:
+        doc = doc["snippets"]
+    if not isinstance(doc, list):
+        raise ValueError("no snippet list found (expected 'snippets' or a list)")
+    return {s.get("name") for s in doc if isinstance(s, dict)}
 
 
 def load_profiles(doc):
@@ -234,6 +248,30 @@ def check_hysteria2(profile, ib, f):
                                  f"pointing it at the decoy keeps the node one site on TCP and UDP")
 
 
+def check_snippets(profile, cfg, f, snippets):
+    """Panel 2.8.0 expands {"snippet": name} in outbounds and routing (remnawave-2.8.md)."""
+    if "snippets" in cfg:
+        f.warn("SNIPPET-ROOT", f"{profile}: a root-level 'snippets' key is a panel 3.x feature; "
+                               f"2.8.0 does not expand it, so nothing is merged")
+    routing = cfg.get("routing") or {}
+    places = [("outbounds", cfg.get("outbounds")), ("routing.rules", routing.get("rules")),
+              ("routing.balancers", routing.get("balancers"))]
+    for where, items in places:
+        for item in items or []:
+            name = item.get("snippet") if isinstance(item, dict) else None
+            if not name:
+                continue
+            if where == "routing.balancers" and not routing.get("rules"):
+                f.warn("SNIPPET-BALANCER", f"{profile}: {where} refers to snippet {name!r} but there "
+                                           f"are no routing.rules; panel 2.8.0 then leaves it unexpanded")
+            if snippets is None:
+                f.note("SNIPPET-UNCHECKED", f"{profile}: {where} refers to snippet {name!r}; pass "
+                                            f"--snippets to check it exists")
+            elif name not in snippets:
+                f.error("SNIPPET-MISSING", f"{profile}: {where} refers to snippet {name!r}, which does "
+                                           f"not exist — the panel drops the element silently")
+
+
 # --------------------------------------------------------------------------
 # Web server checks (rendered angie.conf / nginx.conf)
 # --------------------------------------------------------------------------
@@ -372,7 +410,7 @@ def check_web(text, realities, xhttps, f):
 
 # --------------------------------------------------------------------------
 
-def validate(profiles, web_text=None):
+def validate(profiles, web_text=None, snippets=None):
     f = Findings()
     seen_global = {}
     realities, xhttps = [], []
@@ -382,6 +420,7 @@ def validate(profiles, web_text=None):
             f.error("NO-INBOUNDS", f"{name}: no inbounds")
             continue
         check_tags(name, inbounds, f, seen_global)
+        check_snippets(name, cfg, f, snippets)
         for ib in inbounds:
             ss = ib.get("streamSettings") or {}
             if ib.get("protocol") == "vless" and ss.get("security") == "reality":
@@ -396,20 +435,32 @@ def validate(profiles, web_text=None):
 
 
 def main(argv):
-    if len(argv) not in (2, 3):
+    args, snippets_path = list(argv[1:]), None
+    if "--snippets" in args:
+        i = args.index("--snippets")
+        if i + 1 >= len(args):
+            args = []
+        else:
+            snippets_path = args[i + 1]
+            del args[i:i + 2]
+    if len(args) not in (1, 2):
         print(__doc__.strip().split("\n\n")[1])
         return 2
     try:
-        with open(argv[1], encoding="utf-8") as fh:
+        with open(args[0], encoding="utf-8") as fh:
             profiles = load_profiles(json.load(fh))
         web = None
-        if len(argv) == 3:
-            with open(argv[2], encoding="utf-8") as fh:
+        if len(args) == 2:
+            with open(args[1], encoding="utf-8") as fh:
                 web = fh.read()
+        snippets = None
+        if snippets_path:
+            with open(snippets_path, encoding="utf-8") as fh:
+                snippets = load_snippets(json.load(fh))
     except (OSError, ValueError) as e:
         print(f"cannot read input: {e}")
         return 2
-    f = validate(profiles, web)
+    f = validate(profiles, web, snippets)
     for level, fid, msg in f.items:
         print(f"{level:5} {fid}: {msg}")
     errors = len(f.ids("ERROR"))

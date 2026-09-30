@@ -69,9 +69,9 @@ def good_config():
     return cfg
 
 
-def run(cfg=None, web=None, profiles=None):
+def run(cfg=None, web=None, profiles=None, snippets=None):
     profiles = profiles if profiles is not None else [("test", cfg if cfg is not None else good_config())]
-    return validate.validate(profiles, web)
+    return validate.validate(profiles, web, snippets)
 
 
 def grpc_block_of(web):
@@ -191,6 +191,42 @@ class Hysteria2Rules(unittest.TestCase):
         self.assertEqual(f.ids("NOTE"), ["HY2-MASQUERADE"])
 
 
+class SnippetRules(unittest.TestCase):
+    def with_block_snippet(self):
+        cfg = good_config()
+        cfg["routing"]["rules"].append({"snippet": "block-rules"})
+        return cfg
+
+    def test_existing_snippet_is_clean(self):
+        f = run(self.with_block_snippet(), snippets={"block-rules"})
+        self.assertEqual(f.ids(), [])
+
+    def test_missing_snippet(self):
+        f = run(self.with_block_snippet(), snippets={"block-rule"})
+        self.assertEqual(f.ids("ERROR"), ["SNIPPET-MISSING"])
+
+    def test_without_export_it_is_a_note(self):
+        f = run(self.with_block_snippet())
+        self.assertEqual(f.ids("ERROR") + f.ids("WARN"), [])
+        self.assertEqual(f.ids("NOTE"), ["SNIPPET-UNCHECKED"])
+
+    def test_root_level_snippets_warn(self):
+        cfg = good_config()
+        cfg["snippets"] = ["dns"]
+        self.assertEqual(run(cfg).ids("WARN"), ["SNIPPET-ROOT"])
+
+    def test_balancer_without_rules_warns(self):
+        cfg = good_config()
+        cfg["routing"] = {"balancers": [{"snippet": "lb"}]}
+        f = run(cfg, snippets={"lb"})
+        self.assertEqual(f.ids("WARN"), ["SNIPPET-BALANCER"])
+
+    def test_snippet_export_shapes(self):
+        items = [{"name": "a", "snippet": [{}]}]
+        for doc in ({"response": {"total": 1, "snippets": items}}, {"snippets": items}, items):
+            self.assertEqual(validate.load_snippets(doc), {"a"})
+
+
 class WebRules(unittest.TestCase):
     def test_template_markers_refused(self):
         self.assertEqual(run(web=GOOD_WEB + "\n{{ getenv \"X\" }}\n").ids("ERROR"), ["WEB-TEMPLATE"])
@@ -269,6 +305,18 @@ class CommandLine(unittest.TestCase):
         self.assertEqual(validate.main(["validate.py", good, web]), 0)
         self.assertEqual(validate.main(["validate.py", bad_path]), 1)
         self.assertEqual(validate.main(["validate.py", self._write("not json", ".json")]), 2)
+
+    def test_snippets_flag(self):
+        cfg = good_config()
+        cfg["routing"]["rules"].append({"snippet": "block-rules"})
+        prof = self._write(json.dumps(cfg), ".json")
+        have = self._write(json.dumps({"response": {"total": 1, "snippets": [
+            {"name": "block-rules", "snippet": [{"type": "field", "protocol": ["bittorrent"],
+                                                 "outboundTag": "BLOCK"}]}]}}), ".json")
+        none = self._write(json.dumps({"response": {"total": 0, "snippets": []}}), ".json")
+        self.assertEqual(validate.main(["validate.py", prof, "--snippets", have]), 0)
+        self.assertEqual(validate.main(["validate.py", "--snippets", none, prof]), 1)
+        self.assertEqual(validate.main(["validate.py", prof, "--snippets"]), 2)
 
 
 if __name__ == "__main__":
