@@ -27,12 +27,15 @@ pages).
 | The profile(s) | the panel API `GET /api/config-profiles` (all profiles — tags are checked panel-wide), or one profile's `config` | holds REALITY private keys and the xHTTP path: keep the file local, never commit or paste it |
 | The **rendered** web config | `docker exec <web server container> cat /etc/angie/http.d/default.conf` | not the template: template markers are refused (`WEB-TEMPLATE`). For a change not yet deployed, render it the way the stack's CI does |
 
-The web config is optional; without it only the profile is checked.
+The web config is optional; without it only the profile is checked. If the
+profiles refer to snippets (`{"snippet": "<name>"}`), add the panel's list
+(`GET /api/snippets`) with `--snippets <file>` — a reference to a missing name
+is dropped by the panel without a word (`SNIPPET-MISSING`).
 
 ## 2. Run it
 
 ```
-python ${CLAUDE_PLUGIN_ROOT}/skills/remnawave-cookbook/validate.py <profiles.json> [rendered.conf]
+python ${CLAUDE_PLUGIN_ROOT}/skills/remnawave-cookbook/validate.py <profiles.json> [rendered.conf] [--snippets snippets.json]
 ```
 
 Exit status `0` = no errors (warnings allowed), `1` = errors, `2` = unreadable

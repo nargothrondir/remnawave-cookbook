@@ -16,7 +16,7 @@ Two tools, one set of invariants.
 curl -s -H "Authorization: Bearer $TOKEN" https://panel.example.com/api/config-profiles > profiles.json
 # 2. The RENDERED web config, from inside the web server's container
 docker exec <angie> cat /etc/angie/http.d/default.conf > angie.conf
-# 3. Check
+# 3. Check (add --snippets snippets.json, from GET /api/snippets, if profiles use snippets)
 python validate.py profiles.json angie.conf
 ```
 
@@ -51,6 +51,10 @@ unreadable. Each line is `LEVEL ID: message`.
 | `HY2-PORT` | warn | not on 443 — this architecture pairs UDP 443 with REALITY's TCP 443 |
 | `HY2-MOVED-KEYS` | warn | `congestion` / `up` / `down` / `udphop` in `hysteriaSettings` — ignored with a warning; they live in `finalmask/quicParams` |
 | `HY2-MASQUERADE` | note | default masquerade: a bare 404 to anything speaking HTTP/3 |
+| `SNIPPET-MISSING` | error | a `{"snippet": …}` reference to a name the panel does not have — the element is dropped silently (`reference/remnawave-2.8.md`, "Snippets") |
+| `SNIPPET-UNCHECKED` | note | a snippet reference, checked only with `--snippets` |
+| `SNIPPET-ROOT` | warn | a root-level `snippets` key — panel 3.x only; 2.8.0 merges nothing |
+| `SNIPPET-BALANCER` | warn | a snippet in `routing.balancers` with no `routing.rules` — panel 2.8.0 leaves it unexpanded |
 | `WEB-TEMPLATE` | error | the template was passed instead of the rendered file |
 | `WEB-NO-DECOY-LISTENER` | error | nothing listens on REALITY's `dest` socket |
 | `WEB-PROXY-PROTOCOL` | error | `xver` and the listener's `proxy_protocol` disagree — every handshake breaks |

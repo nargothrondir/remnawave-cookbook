@@ -123,6 +123,49 @@ to VLESS inbounds whose network is `tcp`/`raw` and security `reality`/`tls`
 - Stash output skips xHTTP; the legacy Clash generator marks `xhttp` and
   `hysteria` as unsupported.
 
+## Snippets ✅
+
+A snippet is a named piece of JSON kept by the panel — **one set for the whole
+panel**, not per profile. A profile refers to it by name; the panel expands it
+when it builds a node's config.
+
+- API: `GET /api/snippets` → `{response: {total, snippets: [{name, snippet}]}}`;
+  `POST` / `PATCH` / `DELETE` on the same path, by name. `snippet` is an
+  **array of objects**; a name is 2–255 characters of letters, digits, `_`,
+  `-` and spaces (`libs/contract/commands/snippets/`).
+- Use: an element `{"snippet": "<name>"}` in `outbounds`, `routing.rules` or
+  `routing.balancers` is replaced by the snippet's objects — several, if it
+  holds several (`XRayConfig.replaceSnippets`,
+  `src/common/helpers/xray-config/xray-config.validator.ts`). The stored
+  profile keeps the reference; the node gets the expansion
+  (`get-prepared-config-with-users.handler.ts`).
+- ⚠️ **A name that does not exist removes the element silently.** A typo in
+  the reference to a blocking rule means the node runs without that rule, and
+  nothing reports it.
+- Balancers are expanded only when `routing.rules` exists (the check for
+  `balancers` sits inside the one for `rules`). Inbounds are never expanded.
+- Changing or deleting a snippet restarts nothing: `snippets.service.ts` only
+  writes the database. When a node picks the change up is not verified ❔ —
+  expect its next restart (a profile change, a node restart).
+- To see what a node will get: `GET /api/config-profiles/{uuid}/computed-config`
+  returns the profile with snippets expanded (`getComputedConfigProfileByUUID`).
+  `validate.py --snippets <export>` checks the references offline.
+
+**In 3.x** (read at 3.4.4, not a pinned version): an `actions/sync` call on a
+snippet restarts the nodes of every profile that uses it, and a root-level
+`"snippets": ["<name>", …]` merges the snippets' top-level keys into the
+config — never over a key the config already has, and never `api`,
+`inbounds`, `metrics`, `stats`. Panel 2.8.0 does not expand a root-level
+`snippets` key; it passes it on, and Xray's JSON loader ignores unknown keys
+(no `DisallowUnknownFields` in `infra/conf/serial/loader.go`, v26.6.27) — so
+nothing is merged and nothing reports it 🔶 (the node's own loading path not
+traced).
+
+**In the reference implementation:** not used. The only candidate — the
+blocking rules every profile repeats — is two stable lines, and in 2.8.0 a
+silently dropped rule costs more than the duplication. Revisit with 3.x, where
+`sync` exists.
+
 ## Calling the API
 
 - Requests without `X-Forwarded-For` and `X-Forwarded-Proto: https` are
