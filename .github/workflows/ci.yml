@@ -93,6 +93,9 @@ jobs:
       - name: shellcheck the plugin's bin/
         run: shellcheck bin/edge-check
 
+      - name: shellcheck the release script
+        run: shellcheck tools/release.sh
+
       - name: edge-check prints its usage
         run: bash bin/edge-check --help
 
